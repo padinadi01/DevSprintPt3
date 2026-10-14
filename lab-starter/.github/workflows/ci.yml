@@ -1,0 +1,42 @@
+name: Build & Test Verification
+
+on:
+  push:
+    branches:
+      - main
+      - student1
+      - student2
+      - student3
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  verify-build:
+    name: Test Code & Docker Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1. Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 2. Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 3. Install Dependencies
+        run: |
+          npm install
+
+      - name: 4. Validate Server Syntax
+        run: |
+          node --check server.js
+          echo "Server syntax is valid!"
+
+      - name: 5. Test Docker Container Build
+        run: |
+          echo "Building Docker image step-by-step..."
+          docker build -t test-image:latest .
+          echo "Docker image built successfully!"

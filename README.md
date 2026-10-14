@@ -192,6 +192,12 @@ Periksa [Panduan Pengembangan](docs/DEVELOPMENT.md) sebelum menjalankan reset ka
 └── README.md                # Ikhtisar proyek dan indeks dokumentasi
 ```
 
+## Starter lab awal
+
+File starter lab yang sebelumnya berada di root kini dipertahankan di [`lab-starter/`](lab-starter/README.md), terpisah dari aplikasi Warung Madura. Folder tersebut memuat `server.js`, Dockerfile, konfigurasi contoh, package files, README, dan workflow starter.
+
+Workflow di dalam `lab-starter/.github/` tidak dijalankan otomatis oleh GitHub Actions karena GitHub hanya memuat workflow dari `.github/workflows/` di root repository. File tersebut dipertahankan sebagai bagian dari starter lab.
+
 ## Verifikasi dan batasan
 
 Repository menyediakan pemeriksaan lint, type-check, build, dan unit test autentikasi. Keberadaan script tidak berarti semua sudah dijalankan pada perubahan terbaru; lihat laporan hasil dan cakupan verifikasi di [Laporan Proyek](docs/PROJECT_REPORT.md#verifikasi). Tes unit yang tersedia belum menggantikan pengujian integrasi API, browser end-to-end, beban, atau pemulihan database.
