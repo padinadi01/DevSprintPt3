@@ -1,0 +1,282 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum StockMovementType {
+  INITIAL
+  SALE
+  ADJUSTMENT_IN
+  ADJUSTMENT_OUT
+  RESTOCK
+  RESTOCK_BONUS
+  DAMAGED_IN
+  OPNAME_IN
+  OPNAME_OUT
+}
+
+enum RestockOrderStatus {
+  PENDING
+  PARTIAL
+  COMPLETED
+  CANCELLED
+}
+
+enum RestockItemStatus {
+  PENDING
+  PARTIAL
+  FULFILLED
+  CANCELLED
+}
+
+enum InventoryCheckStatus {
+  DRAFT
+  COMPLETED
+}
+
+model Product {
+  id            String   @id @default(uuid()) @db.Uuid
+  sku           String   @unique
+  name          String
+  category      String
+  purchasePrice Decimal  @db.Decimal(12, 2)
+  sellingPrice  Decimal  @db.Decimal(12, 2)
+  stock         Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  unitName      String   @default("pcs")
+  bulkUnitName  String?
+  piecesPerBulk Int?
+
+  saleItems           SaleItem[]
+  stockMovements      StockMovement[]
+  restockOrderItems   RestockOrderItem[]
+  restockReceiptItems RestockReceiptItem[]
+  inventoryCheckItems InventoryCheckItem[]
+}
+
+model Sale {
+  id            String   @id @default(uuid()) @db.Uuid
+  invoiceNumber String   @unique
+  total         Decimal  @db.Decimal(12, 2)
+  createdAt     DateTime @default(now())
+
+  items SaleItem[]
+
+  @@index([createdAt])
+}
+
+model SaleItem {
+  id        String  @id @default(uuid()) @db.Uuid
+  saleId    String  @db.Uuid
+  productId String  @db.Uuid
+  quantity  Int
+  unitPrice Decimal @db.Decimal(12, 2)
+  subtotal  Decimal @db.Decimal(12, 2)
+
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([saleId])
+  @@index([productId])
+}
+
+model StockMovement {
+  id            String            @id @default(uuid()) @db.Uuid
+  productId     String            @db.Uuid
+  type          StockMovementType
+  quantity      Int
+  beforeStock   Int
+  afterStock    Int
+  referenceType String?
+  referenceId   String?
+  note          String?
+  createdAt     DateTime          @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([productId, createdAt])
+}
+
+model Supplier {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  phone     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  restockOrders RestockOrder[]
+}
+
+model RestockOrder {
+  id          String             @id @default(uuid()) @db.Uuid
+  orderNumber String             @unique
+  supplierId  String             @db.Uuid
+  status      RestockOrderStatus @default(PENDING)
+  notes       String?
+  orderedAt   DateTime           @default(now())
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  supplier Supplier          @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  items    RestockOrderItem[]
+  receipts RestockReceipt[]
+
+  @@index([supplierId])
+  @@index([orderedAt])
+}
+
+model RestockOrderItem {
+  id               String           @id @default(uuid()) @db.Uuid
+  restockOrderId   String           @db.Uuid
+  productId        String           @db.Uuid
+  quantityOrdered  Int
+  quantityReceived Int              @default(0)
+  unitName         String
+  piecesPerUnit    Int
+  purchasePrice    Decimal          @db.Decimal(12, 2)
+  status           RestockItemStatus @default(PENDING)
+
+  restockOrder RestockOrder         @relation(fields: [restockOrderId], references: [id], onDelete: Cascade)
+  product      Product              @relation(fields: [productId], references: [id], onDelete: Restrict)
+  receiptItems RestockReceiptItem[]
+
+  @@index([restockOrderId])
+  @@index([productId])
+}
+
+model RestockReceipt {
+  id              String   @id @default(uuid()) @db.Uuid
+  receiptNumber   String   @unique
+  restockOrderId  String   @db.Uuid
+  receivedBy      String
+  idempotencyKey  String   @unique
+  notes           String?
+  receivedAt      DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  restockOrder RestockOrder        @relation(fields: [restockOrderId], references: [id], onDelete: Cascade)
+  items        RestockReceiptItem[]
+
+  @@index([restockOrderId])
+}
+
+model RestockReceiptItem {
+  id                  String  @id @default(uuid()) @db.Uuid
+  receiptId           String  @db.Uuid
+  restockOrderItemId  String  @db.Uuid
+  productId           String  @db.Uuid
+  quantityGood        Int
+  quantityDamaged     Int     @default(0)
+  quantityBonus       Int     @default(0)
+  purchasePrice       Decimal @db.Decimal(12, 2)
+  unitName            String
+  piecesPerUnit       Int
+  notes               String?
+
+  receipt        RestockReceipt   @relation(fields: [receiptId], references: [id], onDelete: Cascade)
+  restockOrderItem RestockOrderItem @relation(fields: [restockOrderItemId], references: [id], onDelete: Restrict)
+  product        Product          @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([receiptId])
+  @@index([restockOrderItemId])
+}
+
+model InventoryCheck {
+  id          String               @id @default(uuid()) @db.Uuid
+  checkNumber String               @unique
+  checkedBy   String
+  status      InventoryCheckStatus @default(DRAFT)
+  notes       String?
+  checkedAt   DateTime             @default(now())
+  createdAt   DateTime             @default(now())
+
+  items InventoryCheckItem[]
+
+  @@index([checkedAt])
+}
+
+model InventoryCheckItem {
+  id               String @id @default(uuid()) @db.Uuid
+  inventoryCheckId String @db.Uuid
+  productId        String @db.Uuid
+  systemStock      Int
+  physicalStock    Int
+  difference       Int
+  reason           String
+  notes            String?
+
+  inventoryCheck InventoryCheck @relation(fields: [inventoryCheckId], references: [id], onDelete: Cascade)
+  product        Product        @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([inventoryCheckId])
+  @@index([productId])
+}
+
+model AccessRole {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @unique
+  permissions String[] @default([])
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users User[]
+}
+
+model User {
+  id          String   @id @default(uuid()) @db.Uuid
+  username    String   @unique
+  displayName String
+  pinHash     String
+  roleId      String   @db.Uuid
+  isActive    Boolean  @default(true)
+  permissions String[] @default([])
+  usesRolePermissions Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  role     AccessRole   @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  sessions             AuthSession[]     @relation("SessionOwner")
+  actingSessions       AuthSession[]     @relation("SessionActingAs")
+  ownedSwitchAudits    AuthSwitchAudit[] @relation("SwitchOwner")
+  targetSwitchAudits   AuthSwitchAudit[] @relation("SwitchTarget")
+
+  @@index([roleId, isActive])
+}
+
+model AuthSession {
+  id              String   @id @default(uuid()) @db.Uuid
+  tokenHash       String   @unique
+  userId          String   @db.Uuid
+  actingAsUserId  String?  @db.Uuid
+  expiresAt       DateTime
+  createdAt       DateTime @default(now())
+
+  user         User  @relation("SessionOwner", fields: [userId], references: [id], onDelete: Cascade)
+  actingAsUser User? @relation("SessionActingAs", fields: [actingAsUserId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([actingAsUserId])
+  @@index([expiresAt])
+}
+
+model AuthSwitchAudit {
+  id           String   @id @default(uuid()) @db.Uuid
+  ownerUserId  String   @db.Uuid
+  targetUserId String   @db.Uuid
+  action       String
+  createdAt    DateTime @default(now())
+
+  owner  User @relation("SwitchOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  target User @relation("SwitchTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@index([ownerUserId, createdAt])
+  @@index([targetUserId, createdAt])
+}

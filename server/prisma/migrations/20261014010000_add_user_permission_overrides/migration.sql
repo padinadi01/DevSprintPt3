@@ -1,0 +1,3 @@
+ALTER TABLE "User"
+    ADD COLUMN "permissions" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+    ADD COLUMN "usesRolePermissions" BOOLEAN NOT NULL DEFAULT true;
