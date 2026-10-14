@@ -4,10 +4,10 @@ require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 8080;
-const appName = process.env.APP_NAME || 'DevSprint Container';
+const appName = process.env.APP_NAME || 'Student 3 Service';
 
 // 1. Determine target schema from DATABASE_URL (?schema=...) or DB_SCHEMA env var
-let targetSchema = process.env.DB_SCHEMA || 'public';
+let targetSchema = process.env.DB_SCHEMA || 'student3';
 if (process.env.DATABASE_URL) {
   try {
     const parsed = new URL(process.env.DATABASE_URL);
@@ -18,6 +18,10 @@ if (process.env.DATABASE_URL) {
   } catch (err) {
     console.warn('Could not parse DATABASE_URL as URL, using schema:', targetSchema);
   }
+}
+
+if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(targetSchema)) {
+  throw new Error('Invalid PostgreSQL schema name');
 }
 
 // 2. Initialize PostgreSQL Pool

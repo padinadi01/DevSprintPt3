@@ -6,7 +6,7 @@ Welcome to the **DevSprint** project! This repository powers a multi-tenant clou
 
 ## 🏗️ Architecture Overview
 
-Each student works on their own dedicated Git branch. Pushing to your branch **automatically builds and deploys your own private container on GCP Cloud Run** while sharing a single Supabase database with zero data conflicts:
+Each student works on a dedicated Git branch and uses an isolated Supabase schema. A push runs the repository's GitHub Actions build verification; Cloud Run deployment depends on a separately configured GCP trigger.
 
 ```
                       GitHub Monorepo
@@ -88,10 +88,11 @@ git checkout student3
 Create a `.env` file in the root directory (based on `.env.example`):
 ```env
 PORT=8080
-APP_NAME=Student 1 Service
-DATABASE_URL=postgresql://postgres.kdepzstxneeufegoogrf:zhZFsaubb3efb161@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres?schema=student1
+APP_NAME=Student 3 Service
+DB_SCHEMA=student3
+DATABASE_URL=postgresql://<USER>:<URL_ENCODED_PASSWORD>@<HOST>:6543/postgres?schema=student3
 ```
-*(Replace `?schema=student1` with your assigned schema name).*
+Use kredensial Supabase dari pengelola dengan skema `student3`. Jangan commit `.env`; file ini diabaikan Git. URL-encode karakter khusus pada password. Lihat `.env.example` untuk template tanpa rahasia.
 
 ### 4. Install dependencies and run locally
 ```bash
@@ -104,7 +105,7 @@ Open [http://localhost:8080](http://localhost:8080) in your browser. You will se
 
 ## 🚀 How to Deploy Your Changes
 
-Deploying is as simple as running `git push`:
+Push perubahan kode ke branch `student3` setelah commit. Jangan tambahkan `.env` atau kredensial ke commit.
 
 ```bash
 # 1. Stage and commit your code
@@ -112,10 +113,10 @@ git add .
 git commit -m "Add new student feature"
 
 # 2. Push to your assigned branch
-git push origin student1    # (replace student1 with your branch)
+git push origin student3
 ```
 
-**That's it!** Google Cloud Build will automatically detect your push, build your Docker container, and deploy it to Cloud Run in about **90 seconds**.
+Push ke branch `student3` memicu workflow GitHub Actions untuk memeriksa sintaks dan membangun Docker image. Workflow yang ada di repository ini belum menjalankan deploy Cloud Run; deployment otomatis memerlukan trigger Cloud Build/GCP yang dikonfigurasi terpisah.
 
 ---
 
