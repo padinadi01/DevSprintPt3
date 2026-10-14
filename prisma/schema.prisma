@@ -1,0 +1,232 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum StockMovementType {
+  INITIAL
+  SALE
+  ADJUSTMENT_IN
+  ADJUSTMENT_OUT
+  PROCUREMENT_IN     // stock added via a goods receipt
+  PROCUREMENT_REJECT // reserved for future reversal of a rejection
+}
+
+enum PurchaseOrderStatus {
+  OPEN
+  PARTIALLY_RECEIVED
+  COMPLETED
+  CANCELLED
+}
+
+enum GoodsReceiptStatus {
+  RECEIVED
+  CANCELLED
+}
+
+// ---------------------------------------------------------------------------
+// Existing models (unchanged in shape; Product gains two procurement columns)
+// ---------------------------------------------------------------------------
+
+model Product {
+  id               String   @id @default(uuid()) @db.Uuid
+  sku              String   @unique
+  name             String
+  category         String
+  purchasePrice    Decimal  @db.Decimal(12, 2)
+  sellingPrice     Decimal  @db.Decimal(12, 2)
+  stock            Int      @default(0)
+  isActive         Boolean  @default(true)
+  // Purchase-unit metadata — stock is ALWAYS stored in base (sell) units.
+  unitOfPurchase   String   @default("pcs") // e.g. "dus", "renteng", "bal"
+  unitsPerPurchase Int      @default(1)      // how many base units fit in one purchase unit
+  baseUnit         String   @default("pcs")  // e.g. "sachet", "bungkus", "botol"
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  saleItems          SaleItem[]
+  stockMovements     StockMovement[]
+  purchaseOrderItems PurchaseOrderItem[]
+  goodsReceiptItems  GoodsReceiptItem[]
+}
+
+model Sale {
+  id            String   @id @default(uuid()) @db.Uuid
+  invoiceNumber String   @unique
+  total         Decimal  @db.Decimal(12, 2)
+  createdAt     DateTime @default(now())
+
+  items SaleItem[]
+
+  @@index([createdAt])
+}
+
+model SaleItem {
+  id        String  @id @default(uuid()) @db.Uuid
+  saleId    String  @db.Uuid
+  productId String  @db.Uuid
+  quantity  Int
+  unitPrice Decimal @db.Decimal(12, 2)
+  subtotal  Decimal @db.Decimal(12, 2)
+
+  sale    Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([saleId])
+  @@index([productId])
+}
+
+// Append-only. Every unit of stock must be traceable here.
+model StockMovement {
+  id            String            @id @default(uuid()) @db.Uuid
+  productId     String            @db.Uuid
+  type          StockMovementType
+  quantity      Int               // always in BASE units (sachet, bungkus, etc.)
+  beforeStock   Int
+  afterStock    Int
+  referenceType String?           // e.g. "GOODS_RECEIPT", "SALE"
+  referenceId   String?           // FK to the source document (not enforced at DB level for flexibility)
+  note          String?
+  createdAt     DateTime          @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([productId, createdAt])
+  @@index([referenceType, referenceId])
+}
+
+// ---------------------------------------------------------------------------
+// Procurement models
+// ---------------------------------------------------------------------------
+
+model Supplier {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  purchaseOrders PurchaseOrder[]
+  goodsReceipts  GoodsReceipt[]
+}
+
+enum UserRole {
+  PEMILIK
+  STAF
+}
+
+// Named staff members who can receive goods (Udin, Sari, …).
+model Receiver {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  goodsReceipts GoodsReceipt[]
+  user          User?
+}
+
+// C1: Pengguna (Pemilik + Udin + Sari), PIN di-hash, peran tersimpan
+model User {
+  id          String    @id @default(uuid()) @db.Uuid
+  username    String    @unique
+  name        String
+  pinHash     String
+  role        UserRole  @default(STAF)
+  permissions String[]  @default([])
+  receiverId  String?   @unique @db.Uuid
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  receiver   Receiver? @relation(fields: [receiverId], references: [id], onDelete: SetNull)
+}
+
+// Optional planning document. A receipt can exist without a PO (direct delivery).
+model PurchaseOrder {
+  id         String              @id @default(uuid()) @db.Uuid
+  supplierId String              @db.Uuid
+  status     PurchaseOrderStatus @default(OPEN)
+  orderDate  DateTime
+  note       String?
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  supplier Supplier            @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  items    PurchaseOrderItem[]
+  receipts GoodsReceipt[]
+
+  @@index([supplierId])
+  @@index([status])
+  @@index([orderDate])
+}
+
+model PurchaseOrderItem {
+  id              String @id @default(uuid()) @db.Uuid
+  purchaseOrderId String @db.Uuid
+  productId       String @db.Uuid
+  orderedQty      Int    // in PURCHASE units (dus, renteng…); must be > 0 (enforced by CHECK)
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product       Product       @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([purchaseOrderId])
+  @@index([productId])
+}
+
+// Append-only receipt header. One row per physical delivery event.
+model GoodsReceipt {
+  id              String             @id @default(uuid()) @db.Uuid
+  purchaseOrderId String?            @db.Uuid // null = direct receipt (no prior PO)
+  supplierId      String             @db.Uuid
+  receiverId      String             @db.Uuid
+  status          GoodsReceiptStatus @default(RECEIVED)
+  receivedAt      DateTime           // actual delivery timestamp recorded by staff
+  idempotencyKey  String             @unique // client-generated UUID; prevents double-submit
+  note            String?
+  reversalReason  String?
+  reversedBy      String?
+  reversedAt      DateTime?
+  createdAt       DateTime           @default(now())
+
+  supplier      Supplier           @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  receiver      Receiver           @relation(fields: [receiverId], references: [id], onDelete: Restrict)
+  purchaseOrder PurchaseOrder?     @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict)
+  items         GoodsReceiptItem[]
+
+  @@index([supplierId])
+  @@index([receiverId])
+  @@index([purchaseOrderId])
+  @@index([receivedAt])
+}
+
+// Append-only receipt line. Cost columns are SNAPSHOTS — never recalculated.
+model GoodsReceiptItem {
+  id                      String   @id @default(uuid()) @db.Uuid
+  receiptId               String   @db.Uuid
+  productId               String   @db.Uuid
+  receivedQty             Int      // in PURCHASE units (dus, renteng…)
+  receivedBaseQty         Int      @default(0) // in BASE units (loose base units, e.g. 5 bungkus)
+  rejectedQty             Int      @default(0) // in PURCHASE units; 0..receivedQty
+  rejectedBaseQty         Int      @default(0) // in BASE units (e.g. 1 bungkus damaged in a dus)
+  rejectedReason          String?  // required when rejectedQty > 0 or rejectedBaseQty > 0
+  isBonus                 Boolean  @default(false) // true → cost is spread, stock increases
+  // Cost snapshots: frozen at the moment of receipt, never touched again.
+  unitCostPerPurchaseUnit Decimal  @db.Decimal(12, 2) // cost per dus/renteng at time of receipt
+  unitCostPerBaseUnit     Decimal  @db.Decimal(12, 2) // = unitCostPerPurchaseUnit / unitsPerPurchase
+  createdAt               DateTime @default(now())
+
+  receipt GoodsReceipt @relation(fields: [receiptId], references: [id], onDelete: Restrict)
+  product Product      @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([receiptId])
+  @@index([productId])
+}
+

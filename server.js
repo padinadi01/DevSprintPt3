@@ -1,13 +1,24 @@
-const express = require('express');
-const { Pool } = require('pg');
 require('dotenv').config();
+
+// Ensure pgbouncer=true for Prisma when connecting to Supabase transaction pooler (port 6543)
+if (
+  process.env.DATABASE_URL &&
+  (process.env.DATABASE_URL.includes(':6543') || process.env.DATABASE_URL.includes('pooler.supabase.com')) &&
+  !process.env.DATABASE_URL.includes('pgbouncer=true')
+) {
+  process.env.DATABASE_URL += (process.env.DATABASE_URL.includes('?') ? '&' : '?') + 'pgbouncer=true';
+}
+
+const express = require('express');
+const path = require('path');
+const { Pool } = require('pg');
 
 const app = express();
 const port = process.env.PORT || 8080;
-const appName = process.env.APP_NAME || 'DevSprint Container';
+const appName = process.env.APP_NAME || 'Student 1 Service';
 
 // 1. Determine target schema from DATABASE_URL (?schema=...) or DB_SCHEMA env var
-let targetSchema = process.env.DB_SCHEMA || 'public';
+let targetSchema = process.env.DB_SCHEMA || 'student1';
 if (process.env.DATABASE_URL) {
   try {
     const parsed = new URL(process.env.DATABASE_URL);
@@ -20,7 +31,7 @@ if (process.env.DATABASE_URL) {
   }
 }
 
-// 2. Initialize PostgreSQL Pool
+// 2. Initialize PostgreSQL Pool (for Lab Notes API)
 let pool = null;
 if (process.env.DATABASE_URL) {
   const isSupabase = process.env.DATABASE_URL.includes('supabase.com');
@@ -63,7 +74,7 @@ async function initDatabase() {
 
 app.use(express.json());
 
-// 4. REST API Endpoints
+// 4. Lab REST API Endpoints
 
 // Cloud Run Health check
 app.get('/api/health', (req, res) => {
@@ -72,6 +83,7 @@ app.get('/api/health', (req, res) => {
     appName,
     schema: targetSchema,
     timestamp: new Date().toISOString(),
+    warungMadura: 'online',
   });
 });
 
@@ -91,7 +103,7 @@ app.get('/api/schema-info', async (req, res) => {
     res.json({
       user: info.rows[0].current_user,
       activeSchema: info.rows[0].current_schema,
-      tables: tables.rows.map(r => r.table_name),
+      tables: tables.rows.map((r) => r.table_name),
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -146,8 +158,26 @@ app.delete('/api/notes/:id', async (req, res) => {
   }
 });
 
-// 5. Interactive Web Dashboard
-app.get('/', async (req, res) => {
+// 5. Warung Madura Stock Manager REST APIs
+try {
+  const { apiRouter } = require('./dist/routes');
+  const { errorHandler } = require('./dist/middleware/error-handler');
+  app.use('/api', apiRouter);
+  app.use('/api', (req, res) => {
+    res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Endpoint tidak ditemukan.' } });
+  });
+  app.use(errorHandler);
+  console.log('[Warung Madura] REST APIs mounted successfully.');
+} catch (err) {
+  console.error('[Warung Madura] Error mounting API routes:', err);
+}
+
+// 6. Serve Compiled Frontend & Lab Dashboard
+const publicPath = path.join(__dirname, 'public');
+app.use(express.static(publicPath));
+
+// DevSprint Container Lab Dashboard (/lab)
+app.get(['/lab', '/lab-dashboard', '/notes-dashboard'], async (req, res) => {
   let dbStatus = {
     connected: false,
     user: 'N/A',
@@ -174,7 +204,7 @@ app.get('/', async (req, res) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${appName} - Cloud Run & Supabase</title>
+  <title>${appName} - Cloud Run & Supabase Lab</title>
   <style>
     :root {
       --bg: #0b1120;
@@ -214,6 +244,15 @@ app.get('/', async (req, res) => {
       padding: 28px;
       box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
     }
+    .nav-link {
+      display: inline-block;
+      margin-bottom: 16px;
+      color: var(--primary);
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .nav-link:hover { text-decoration: underline; }
     .badge {
       display: inline-flex;
       align-items: center;
@@ -340,14 +379,17 @@ app.get('/', async (req, res) => {
 </head>
 <body>
   <div class="container">
-    
+    <a href="/" class="nav-link">← Kembali ke Warung Madura Stock Manager</a>
+
     <!-- Top System Card -->
     <div class="header-card">
-      <div class="badge ${dbStatus.connected ? 'badge-online' : 'badge-error'}">
-        ● ${dbStatus.connected ? 'Supabase Connected' : 'Database Error'}
-      </div>
+      ${
+        dbStatus.connected
+          ? '<div class="badge badge-online">● Supabase Connected</div>'
+          : '<div class="badge badge-error">● Database Disconnected</div>'
+      }
       <h1>${appName}</h1>
-      <p class="subtitle">Cloud Run Auto-Deployed Container &middot; Isolated PostgreSQL Schema</p>
+      <p class="subtitle">DevSprint Container &middot; Cloud Run Auto-Deployed &middot; Isolated PostgreSQL Schema</p>
 
       <div class="stats-grid">
         <div class="stat-box">
@@ -400,71 +442,60 @@ app.get('/', async (req, res) => {
       <strong>💡 How Schema Isolation Works for You:</strong>
       <p style="margin-top: 6px;">
         Every time your app runs <code>SELECT * FROM notes</code> or <code>INSERT INTO notes</code>, PostgreSQL automatically saves it to <strong><code>${dbStatus.schema}.notes</code></strong>. 
-        Other students can have their own <code>notes</code> table with completely different data and never collide with yours!
+        Your classmates on other branches cannot view or overwrite your data because each branch uses its own schema!
       </p>
     </div>
-
   </div>
 
   <script>
     async function loadNotes() {
-      const listEl = document.getElementById('notesList');
-      const countEl = document.getElementById('itemCount');
       try {
         const res = await fetch('/api/notes');
         const notes = await res.json();
+        const list = document.getElementById('notesList');
+        const count = document.getElementById('itemCount');
         
-        countEl.textContent = notes.length + ' item(s)';
-        
-        if (!notes || notes.length === 0) {
-          listEl.innerHTML = '<div class="empty-msg">No items found in this schema yet. Add one on the left!</div>';
+        count.textContent = notes.length + ' item' + (notes.length === 1 ? '' : 's');
+
+        if (notes.length === 0) {
+          list.innerHTML = '<div class="empty-msg">No items in your schema yet. Add one above!</div>';
           return;
         }
 
-        listEl.innerHTML = notes.map(n => \`
+        list.innerHTML = notes.map(n => \`
           <div class="note-item">
             <div class="note-header">
               <span class="note-title">\${escapeHtml(n.title)}</span>
-              <span class="note-date">\${new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              <span class="note-date">\${new Date(n.created_at).toLocaleTimeString()}</span>
             </div>
             \${n.content ? \`<div class="note-content">\${escapeHtml(n.content)}</div>\` : ''}
             <button class="btn-delete" onclick="deleteNote(\${n.id})">Delete</button>
           </div>
         \`).join('');
       } catch (err) {
-        listEl.innerHTML = '<div class="empty-msg" style="color: var(--danger)">Error loading data: ' + err.message + '</div>';
-        countEl.textContent = 'Error';
+        document.getElementById('notesList').innerHTML = '<div class="empty-msg" style="color:var(--danger)">Failed to load items</div>';
       }
     }
 
     document.getElementById('noteForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const titleInput = document.getElementById('title');
-      const contentInput = document.getElementById('content');
+      const title = document.getElementById('title').value;
+      const content = document.getElementById('content').value;
       const btn = document.getElementById('submitBtn');
 
       btn.disabled = true;
       btn.textContent = 'Saving...';
 
       try {
-        const res = await fetch('/api/notes', {
+        await fetch('/api/notes', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: titleInput.value,
-            content: contentInput.value
-          })
+          body: JSON.stringify({ title, content })
         });
-
-        if (res.ok) {
-          titleInput.value = '';
-          contentInput.value = '';
-          await loadNotes();
-        } else {
-          alert('Failed to save item');
-        }
+        document.getElementById('noteForm').reset();
+        await loadNotes();
       } catch (err) {
-        alert('Network error: ' + err.message);
+        alert('Error saving note: ' + err.message);
       } finally {
         btn.disabled = false;
         btn.textContent = 'Save to Database';
@@ -486,7 +517,6 @@ app.get('/', async (req, res) => {
       return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
-    // Initial load
     loadNotes();
   </script>
 </body>
@@ -495,8 +525,28 @@ app.get('/', async (req, res) => {
   res.send(html);
 });
 
+// 7. SPA Fallback for Warung Madura Stock Manager
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) return next();
+  res.sendFile(path.join(publicPath, 'index.html'));
+});
+
 // Start Server and Initialize Database
-app.listen(port, async () => {
+const server = app.listen(port, async () => {
   console.log(`[${appName}] Server running on port ${port}`);
   await initDatabase();
 });
+
+// Graceful shutdown
+async function shutdown() {
+  console.log('Shutting down server gracefully...');
+  server.close();
+  if (pool) {
+    try {
+      await pool.end();
+    } catch {}
+  }
+  process.exit(0);
+}
+process.on('SIGINT', () => void shutdown());
+process.on('SIGTERM', () => void shutdown());
