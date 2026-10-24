@@ -7,31 +7,43 @@ let url = process.env.DATABASE_URL;
 if (url && (url.includes(':6543') || url.includes('pooler.supabase.com')) && !url.includes('pgbouncer=true')) {
     url += (url.includes('?') ? '&' : '?') + 'pgbouncer=true';
 }
-const prisma = new client_1.PrismaClient({
-    datasources: url ? { db: { url } } : undefined,
-    log: ['error'],
-});
 const memoryDb = (0, memory_db_1.createMemoryDb)();
-let remoteDbOffline = false;
+let remoteDbOffline = !url;
+let prisma = null;
+if (url) {
+    try {
+        prisma = new client_1.PrismaClient({
+            datasources: { db: { url } },
+            log: ['error'],
+        });
+    }
+    catch (initErr) {
+        console.warn('[DB Resilience] PrismaClient initialization skipped, using in-memory store.');
+        remoteDbOffline = true;
+    }
+}
 function isConnectionError(err) {
     if (!err)
         return false;
     const msg = String(err.message || '').toLowerCase();
     const code = String(err.code || '');
-    return (code.startsWith('P10') || // P1000 - P1017 (Prisma connection/reachability errors)
+    return (!url ||
+        code.startsWith('P10') || // P1000 - P1017 (Prisma connection/reachability errors)
         msg.includes("can't reach database") ||
         msg.includes('enotfound') ||
         msg.includes('tenant/user') ||
         msg.includes('connection terminated') ||
         msg.includes('econnrefused') ||
         msg.includes('etimedout') ||
-        msg.includes('server closed the connection'));
+        msg.includes('server closed the connection') ||
+        msg.includes('environment variable not found') ||
+        msg.includes('prismaclientinitializationerror'));
 }
 function createModelProxy(modelName) {
     return new Proxy({}, {
         get(_target, method) {
             return async (...args) => {
-                if (remoteDbOffline) {
+                if (remoteDbOffline || !prisma) {
                     const memModel = memoryDb[modelName];
                     if (memModel && typeof memModel[method] === 'function') {
                         return memModel[method](...args);
@@ -64,11 +76,11 @@ function createModelProxy(modelName) {
         },
     });
 }
-exports.db = new Proxy(prisma, {
+exports.db = new Proxy((prisma || {}), {
     get(target, prop) {
         if (prop === '$transaction') {
             return async (cbOrList, ...rest) => {
-                if (remoteDbOffline) {
+                if (remoteDbOffline || !prisma) {
                     return memoryDb.$transaction(cbOrList);
                 }
                 try {
