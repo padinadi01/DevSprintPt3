@@ -1,7 +1,7 @@
 "use strict";
 // Errors thrown by services. The error handler middleware turns them into HTTP responses.
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TooManyRequestsError = exports.ForbiddenError = exports.UnauthorizedError = exports.ConflictError = exports.NotFoundError = exports.AppError = void 0;
+exports.TooManyRequestsError = exports.ForbiddenError = exports.UnauthorizedError = exports.ConflictError = exports.NotFoundError = exports.BadRequestError = exports.AppError = void 0;
 class AppError extends Error {
     status;
     code;
@@ -13,6 +13,12 @@ class AppError extends Error {
     }
 }
 exports.AppError = AppError;
+class BadRequestError extends AppError {
+    constructor(message = 'Permintaan tidak valid.') {
+        super(400, 'BAD_REQUEST', message);
+    }
+}
+exports.BadRequestError = BadRequestError;
 class NotFoundError extends AppError {
     constructor(message = 'Data tidak ditemukan.') {
         super(404, 'NOT_FOUND', message);

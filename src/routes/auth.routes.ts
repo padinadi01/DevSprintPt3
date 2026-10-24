@@ -15,6 +15,7 @@ import {
   updateUserPermissions,
   updateUserPin,
   createUser,
+  deleteUser,
   switchUser,
 } from '../services/auth.service';
 
@@ -185,6 +186,18 @@ authRouter.patch('/users/:id/permissions', authenticate, requireRole(UserRole.PE
     const { permissions } = permissionsSchema.parse(req.body);
     const updated = await updateUserPermissions(id, permissions);
     res.json(updated);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Master Control: Hapus akun pengguna (Pemilik Only)
+authRouter.delete('/users/:id', authenticate, requireRole(UserRole.PEMILIK), async (req, res, next) => {
+  try {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const currentUserId = req.user!.id;
+    const result = await deleteUser(id, currentUserId);
+    res.json(result);
   } catch (error) {
     next(error);
   }

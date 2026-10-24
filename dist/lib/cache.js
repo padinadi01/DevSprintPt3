@@ -28,6 +28,9 @@ exports.cache = {
             }
         }
     },
+    delete(key) {
+        store.delete(key);
+    },
     clear() {
         store.clear();
     },

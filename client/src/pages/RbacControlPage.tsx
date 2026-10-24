@@ -7,6 +7,7 @@ import {
   apiUpdateUserPin,
   apiCreateUser,
   apiUpdateUserPermissions,
+  apiDeleteUser,
   PERMISSIONS_DEF,
   type UserListItem,
   type RbacMatrixItem,
@@ -14,6 +15,7 @@ import {
 } from '../api/auth';
 import { request, ApiError } from '../api/http';
 import { PageHeader } from '../components/PageHeader';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { btnPrimary, btnSecondary, btnDanger } from '../components/ui';
 import { useToast } from '../components/ToastProvider';
 
@@ -64,6 +66,10 @@ export function RbacControlPage() {
   const [permModalUser, setPermModalUser] = useState<UserListItem | null>(null);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [savingPermissions, setSavingPermissions] = useState(false);
+
+  // Delete User modal state
+  const [deleteModalUser, setDeleteModalUser] = useState<UserListItem | null>(null);
+  const [isDeletingUser, setIsDeletingUser] = useState(false);
 
   const loadData = async () => {
     if (!user) {
@@ -213,6 +219,22 @@ export function RbacControlPage() {
     }
   };
 
+  // Handle Delete User
+  const handleDeleteUser = async () => {
+    if (!deleteModalUser) return;
+    setIsDeletingUser(true);
+    try {
+      await apiDeleteUser(deleteModalUser.id);
+      toast.success(`Pengguna "${deleteModalUser.name}" (@${deleteModalUser.username}) berhasil dihapus.`);
+      setDeleteModalUser(null);
+      await loadData();
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal menghapus pengguna.');
+    } finally {
+      setIsDeletingUser(false);
+    }
+  };
+
   // Run Live Permission Probe
   const runLiveProbe = async () => {
     setProbing(true);
@@ -259,6 +281,14 @@ export function RbacControlPage() {
         body: { productId: '00000000-0000-0000-0000-000000000000', reason: 'Uji probe', oldQty: 0, newQty: 1 },
         expectedPemilik: 404, // product not found vs Staf 403
         expectedStaf: 403,
+        expectedAnonim: 401,
+      },
+      {
+        name: 'Hapus Akun Pengguna (DELETE /api/auth/users/:id)',
+        endpoint: '/auth/users/00000000-0000-0000-0000-000000000000',
+        method: 'DELETE',
+        expectedPemilik: 404, // ID tidak ditemukan (Pemilik diizinkan tapi 404)
+        expectedStaf: 403, // Staf ditolak 403 Forbidden
         expectedAnonim: 401,
       },
     ];
@@ -852,6 +882,18 @@ export function RbacControlPage() {
                           >
                             🔑 Ganti PIN
                           </button>
+                          <button
+                            onClick={() => setDeleteModalUser(u)}
+                            disabled={u.id === user?.id}
+                            className={`rounded border px-2.5 py-1 text-xs font-semibold transition-colors ${
+                              u.id === user?.id
+                                ? 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed opacity-60'
+                                : 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100'
+                            }`}
+                            title={u.id === user?.id ? 'Tidak dapat menghapus akun Anda sendiri' : 'Hapus akun pengguna ini'}
+                          >
+                            🗑️ Hapus
+                          </button>
                         </>
                       ) : (
                         <span className="text-xs text-slate-400 italic">Hanya Pemilik</span>
@@ -902,6 +944,20 @@ export function RbacControlPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Modal Konfirmasi Hapus Pengguna */}
+      {deleteModalUser && (
+        <ConfirmDialog
+          title="Hapus Pengguna"
+          message={`Apakah Anda yakin ingin menghapus akun "${deleteModalUser.name}" (@${deleteModalUser.username})? Akun yang dihapus tidak akan dapat login kembali.`}
+          confirmLabel="Hapus Pengguna"
+          busy={isDeletingUser}
+          onConfirm={handleDeleteUser}
+          onCancel={() => {
+            if (!isDeletingUser) setDeleteModalUser(null);
+          }}
+        />
       )}
 
       {/* Modal Atur Hak Akses Staf */}

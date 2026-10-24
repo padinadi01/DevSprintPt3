@@ -217,6 +217,32 @@ export default function App() {
             </Suspense>
           }
         />
+        <Route
+          path="master-control"
+          element={
+            <Suspense fallback={<PageFallback />}>
+              <SeoHead
+                title="Master Control Hak Akses & Karyawan"
+                description="Pengaturan role staf dan izin akses warung."
+                noindex={true}
+              />
+              <RbacControlPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="settings/users"
+          element={
+            <Suspense fallback={<PageFallback />}>
+              <SeoHead
+                title="Master Control Hak Akses & Karyawan"
+                description="Pengaturan role staf dan izin akses warung."
+                noindex={true}
+              />
+              <RbacControlPage />
+            </Suspense>
+          }
+        />
         <Route path="*" element={<NotFoundPage />} />
       </Route>
     </Routes>

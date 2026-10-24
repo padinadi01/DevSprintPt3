@@ -149,3 +149,9 @@ export function apiCreateUser(data: {
     body: data,
   });
 }
+
+export function apiDeleteUser(userId: string): Promise<{ id: string; username: string; message: string }> {
+  return request<{ id: string; username: string; message: string }>(`/auth/users/${userId}`, {
+    method: 'DELETE',
+  });
+}

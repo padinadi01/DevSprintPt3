@@ -2,11 +2,25 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { db } from '../lib/db';
 import { cache } from '../lib/cache';
-import { UnauthorizedError } from '../lib/errors';
-import type { UserRole } from '@prisma/client';
+import { UnauthorizedError, NotFoundError, BadRequestError } from '../lib/errors';
+import { UserRole } from '@prisma/client';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'warung-madura-secret-key-24jam';
 const JWT_EXPIRES_IN = '24h';
+
+const revokedUserIds = new Set<string>();
+
+export function revokeUser(userId: string): void {
+  revokedUserIds.add(userId);
+  cache.set(`user:revoked:${userId}`, true, 86400000);
+  cache.delete(`user:exists:${userId}`);
+}
+
+export function isUserRevoked(userId: string): boolean {
+  if (revokedUserIds.has(userId)) return true;
+  if (cache.get<boolean>(`user:revoked:${userId}`)) return true;
+  return false;
+}
 
 export interface AuthUserPayload {
   id: string;
@@ -70,8 +84,12 @@ export async function loginWithPin(usernameOrName: string, pin: string): Promise
 export function verifyAuthToken(token: string): AuthUserPayload {
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as AuthUserPayload;
+    if (isUserRevoked(decoded.id)) {
+      throw new UnauthorizedError('Akun pengguna telah dinonaktifkan atau dihapus.');
+    }
     return decoded;
-  } catch {
+  } catch (err) {
+    if (err instanceof UnauthorizedError) throw err;
     throw new UnauthorizedError('Token autentikasi tidak valid atau sudah kedaluwarsa.');
   }
 }
@@ -216,4 +234,65 @@ export async function switchUser(username: string): Promise<LoginResult> {
 
   const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
   return { token, user: payload };
+}
+
+export async function deleteUser(targetUserId: string, currentUserId: string) {
+  // 1. Owner can't delete themselves
+  if (targetUserId === currentUserId) {
+    throw new BadRequestError('Anda tidak dapat menghapus akun Anda sendiri.');
+  }
+
+  // 2. Find target user
+  let targetUser: any = null;
+  try {
+    targetUser = await db.user.findUnique({
+      where: { id: targetUserId },
+    });
+  } catch {
+    targetUser = null;
+  }
+
+  if (!targetUser) {
+    throw new NotFoundError('Pengguna tidak ditemukan.');
+  }
+
+  // Double check username to prevent deleting self via alternative representation
+  let currentUser: any = null;
+  try {
+    currentUser = await db.user.findUnique({
+      where: { id: currentUserId },
+    });
+  } catch {
+    currentUser = null;
+  }
+
+  if (currentUser && currentUser.username.toLowerCase() === targetUser.username.toLowerCase()) {
+    throw new BadRequestError('Anda tidak dapat menghapus akun Anda sendiri.');
+  }
+
+  // 3. If target user is PEMILIK, ensure not the last remaining PEMILIK
+  if (targetUser.role === UserRole.PEMILIK) {
+    const ownerCount = await db.user.count({
+      where: { role: UserRole.PEMILIK },
+    });
+    if (ownerCount <= 1) {
+      throw new BadRequestError('Tidak dapat menghapus pemilik terakhir. Sistem harus memiliki minimal satu akun PEMILIK.');
+    }
+  }
+
+  // 4. Delete user record (Receiver and other models remain intact)
+  const deleted = await db.user.delete({
+    where: { id: targetUserId },
+  });
+
+  // 5. Instantly revoke any existing tokens for this user and invalidate cache
+  revokeUser(targetUserId);
+  cache.invalidate('users');
+
+  return {
+    id: deleted.id,
+    username: deleted.username,
+    name: deleted.name,
+    message: `Pengguna ${deleted.name} (@${deleted.username}) berhasil dihapus.`,
+  };
 }

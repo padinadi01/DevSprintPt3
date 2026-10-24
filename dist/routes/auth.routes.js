@@ -172,6 +172,18 @@ exports.authRouter.patch('/users/:id/permissions', auth_middleware_1.authenticat
         next(error);
     }
 });
+// Master Control: Hapus akun pengguna (Pemilik Only)
+exports.authRouter.delete('/users/:id', auth_middleware_1.authenticate, (0, auth_middleware_1.requireRole)(client_1.UserRole.PEMILIK), async (req, res, next) => {
+    try {
+        const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+        const currentUserId = req.user.id;
+        const result = await (0, auth_service_1.deleteUser)(id, currentUserId);
+        res.json(result);
+    }
+    catch (error) {
+        next(error);
+    }
+});
 // Quick Switch (Master Control / Switcher): Langsung beralih akun untuk demonstrasi RBAC
 exports.authRouter.post('/switch', async (req, res, next) => {
     try {

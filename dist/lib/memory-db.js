@@ -281,6 +281,23 @@ function createMemoryDb() {
                 store.users[idx] = { ...store.users[idx], ...args.data, updatedAt: new Date() };
                 return deepClone(store.users[idx]);
             },
+            async count(args) {
+                let list = store.users;
+                if (args?.where) {
+                    list = list.filter((item) => matchesWhere(item, args.where));
+                }
+                return list.length;
+            },
+            async delete(args) {
+                const idx = store.users.findIndex((item) => matchesWhere(item, args.where));
+                if (idx === -1) {
+                    const err = new Error('Record to delete does not exist.');
+                    err.code = 'P2025';
+                    throw err;
+                }
+                const deleted = store.users.splice(idx, 1)[0];
+                return deepClone(deleted);
+            },
         },
         product: {
             async findMany(args) {
