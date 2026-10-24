@@ -1,5 +1,5 @@
 import { z } from 'zod';
 
 export const idParamSchema = z.object({
-  id: z.string().uuid('ID tidak valid'),
+  id: z.string().min(1, 'ID tidak valid'),
 });

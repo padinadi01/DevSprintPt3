@@ -1,1 +1,0 @@
-import{r as e}from"./index-BKZt1Jvk.js";async function a(){return e("/purchase-orders")}async function n(r){return e(`/purchase-orders/${r}`)}async function u(r){return e("/purchase-orders",{method:"POST",body:r})}async function t(r,s){return e(`/purchase-orders/${r}/cancel`,{method:"PATCH",body:{note:s}})}export{n as a,t as b,u as c,a as g};

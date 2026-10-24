@@ -7,6 +7,11 @@ exports.app = void 0;
 const express_1 = __importDefault(require("express"));
 const error_handler_1 = require("./middleware/error-handler");
 const routes_1 = require("./routes");
+if (typeof BigInt !== 'undefined') {
+    BigInt.prototype.toJSON = function () {
+        return Number(this);
+    };
+}
 exports.app = (0, express_1.default)();
 exports.app.use(express_1.default.json());
 exports.app.get('/api/health', (_req, res) => {

@@ -34,10 +34,20 @@ async function getDashboard() {
             take: 10,
         }),
     ]);
+    const toNum = (val) => {
+        if (!val)
+            return 0;
+        if (typeof val === 'number')
+            return val;
+        if (typeof val.toNumber === 'function')
+            return val.toNumber();
+        const n = Number(val);
+        return isNaN(n) ? 0 : n;
+    };
     const result = {
         totalProducts,
         totalUnits: stockSum._sum.stock ?? 0,
-        todaySalesTotal: todaySales._sum.total?.toNumber() ?? 0,
+        todaySalesTotal: toNum(todaySales._sum.total),
         lowStockCount,
         lowStockThreshold: constants_1.LOW_STOCK_THRESHOLD,
         latestSales: latestSales.map(sale_service_1.toSaleSummaryDto),

@@ -38,82 +38,89 @@ type PoWithDetail = Prisma.PurchaseOrderGetPayload<{ include: typeof poDetailInc
 
 function toPurchaseOrderDto(po: PoWithSupplier | PoWithDetail): PurchaseOrderDto {
   const isDetail = 'items' in po;
-  const receipts = isDetail && 'receipts' in po ? po.receipts : [];
+  const receipts = isDetail && 'receipts' in po && Array.isArray((po as any).receipts) ? (po as any).receipts : [];
+
+  const formatDate = (d: any) => {
+    if (!d) return new Date().toISOString();
+    return typeof d === 'string' ? d : (d instanceof Date ? d.toISOString() : new Date(d).toISOString());
+  };
 
   return {
     id: po.id,
     supplierId: po.supplierId,
-    supplierName: po.supplier.name,
+    supplierName: po.supplier?.name || 'Supplier',
     status: po.status,
-    orderDate: po.orderDate.toISOString(),
-    note: po.note,
-    createdAt: po.createdAt.toISOString(),
-    updatedAt: po.updatedAt.toISOString(),
-    items: isDetail
-      ? po.items.map((item) => {
-          const orderedBaseUnits = item.orderedQty * item.product.unitsPerPurchase;
+    orderDate: formatDate((po as any).orderDate),
+    note: po.note || (po as any).notes || null,
+    createdAt: formatDate(po.createdAt),
+    updatedAt: formatDate(po.updatedAt),
+    items: isDetail && Array.isArray((po as any).items)
+      ? (po as any).items.map((item: any) => {
+          const unitsPerPurchase = item.product?.unitsPerPurchase || 1;
+          const orderedQty = item.orderedQty ?? item.quantity ?? 0;
+          const orderedBaseUnits = orderedQty * unitsPerPurchase;
           const receivedGoodBaseUnits = receipts
-            .filter((r) => r.status === 'RECEIVED')
-            .flatMap((r) => r.items)
-            .filter((i) => i.productId === item.productId && !i.isBonus)
+            .filter((r: any) => r.status === 'RECEIVED')
+            .flatMap((r: any) => r.items || [])
+            .filter((i: any) => i.productId === item.productId && !i.isBonus)
             .reduce(
-              (sum, i) =>
+              (sum: number, i: any) =>
                 sum +
-                (i.receivedQty - i.rejectedQty) * item.product.unitsPerPurchase +
+                ((i.receivedQty || 0) - (i.rejectedQty || 0)) * unitsPerPurchase +
                 (i.receivedBaseQty || 0) -
-                i.rejectedBaseQty,
+                (i.rejectedBaseQty || 0),
               0,
             );
 
           const remainingBaseUnits = Math.max(0, orderedBaseUnits - receivedGoodBaseUnits);
-          const receivedQty = Math.floor(receivedGoodBaseUnits / item.product.unitsPerPurchase);
-          const remainingQty = Math.ceil(remainingBaseUnits / item.product.unitsPerPurchase);
+          const receivedQty = Math.floor(receivedGoodBaseUnits / unitsPerPurchase);
+          const remainingQty = Math.ceil(remainingBaseUnits / unitsPerPurchase);
 
           return {
             id: item.id,
             productId: item.productId,
-            productName: item.product.name,
-            productSku: item.product.sku,
-            unitOfPurchase: item.product.unitOfPurchase,
-            unitsPerPurchase: item.product.unitsPerPurchase,
-            orderedQty: item.orderedQty,
+            productName: item.product?.name || 'Produk',
+            productSku: item.product?.sku || '-',
+            unitOfPurchase: item.product?.unitOfPurchase || 'pcs',
+            unitsPerPurchase,
+            orderedQty,
             receivedQty,
             remainingQty,
           };
         })
       : undefined,
     receipts: isDetail
-      ? receipts.map((r) => ({
+      ? receipts.map((r: any) => ({
           id: r.id,
           purchaseOrderId: r.purchaseOrderId,
           supplierId: r.supplierId,
-          supplierName: r.supplier.name,
+          supplierName: r.supplier?.name || po.supplier?.name || 'Supplier',
           receiverId: r.receiverId,
-          receiverName: r.receiver.name,
+          receiverName: r.receiver?.name || 'Penerima',
           status: r.status,
-          receivedAt: r.receivedAt.toISOString(),
+          receivedAt: formatDate(r.receivedAt),
           idempotencyKey: r.idempotencyKey,
           note: r.note,
           reversalReason: r.reversalReason,
           reversedBy: r.reversedBy,
-          reversedAt: r.reversedAt ? r.reversedAt.toISOString() : null,
-          createdAt: r.createdAt.toISOString(),
-          items: r.items.map((i) => ({
+          reversedAt: r.reversedAt ? formatDate(r.reversedAt) : null,
+          createdAt: formatDate(r.createdAt),
+          items: (r.items || []).map((i: any) => ({
             id: i.id,
             productId: i.productId,
-            productName: i.product.name,
-            productSku: i.product.sku,
-            unitOfPurchase: i.product.unitOfPurchase,
-            unitsPerPurchase: i.product.unitsPerPurchase,
-            receivedQty: i.receivedQty,
-            receivedBaseQty: i.receivedBaseQty,
-            rejectedQty: i.rejectedQty,
-            rejectedBaseQty: i.rejectedBaseQty,
-            rejectedReason: i.rejectedReason,
-            isBonus: i.isBonus,
-            unitCostPerPurchaseUnit: i.unitCostPerPurchaseUnit.toNumber(),
-            unitCostPerBaseUnit: i.unitCostPerBaseUnit.toNumber(),
-            createdAt: i.createdAt.toISOString(),
+            productName: i.product?.name || 'Produk',
+            productSku: i.product?.sku || '-',
+            unitOfPurchase: i.product?.unitOfPurchase || 'pcs',
+            unitsPerPurchase: i.product?.unitsPerPurchase || 1,
+            receivedQty: i.receivedQty || 0,
+            receivedBaseQty: i.receivedBaseQty || 0,
+            rejectedQty: i.rejectedQty || 0,
+            rejectedBaseQty: i.rejectedBaseQty || 0,
+            rejectedReason: i.rejectedReason || null,
+            isBonus: !!i.isBonus,
+            unitCostPerPurchaseUnit: i.unitCostPerPurchaseUnit ? (typeof i.unitCostPerPurchaseUnit.toNumber === 'function' ? i.unitCostPerPurchaseUnit.toNumber() : Number(i.unitCostPerPurchaseUnit)) : 0,
+            unitCostPerBaseUnit: i.unitCostPerBaseUnit ? (typeof i.unitCostPerBaseUnit.toNumber === 'function' ? i.unitCostPerBaseUnit.toNumber() : Number(i.unitCostPerBaseUnit)) : 0,
+            createdAt: formatDate(i.createdAt),
           })),
         }))
       : undefined,

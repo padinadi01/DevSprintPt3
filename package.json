@@ -7,7 +7,7 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "build:server": "tsc -p tsconfig.build.json",
-    "test": "npx tsx scripts/test-goods-receipt-logic.ts && npx tsx scripts/test-delete-user.ts",
+    "test": "npx tsx scripts/test-goods-receipt-logic.ts && npx tsx scripts/test-delete-user.ts && npx tsx scripts/test-endpoints-suite.ts",
     "postinstall": "prisma generate || true"
   },
   "dependencies": {

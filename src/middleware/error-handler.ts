@@ -43,7 +43,7 @@ export const errorHandler: ErrorRequestHandler = (error, req, res, _next) => {
     return;
   }
 
-  console.error(`[error] ${req.method} ${req.originalUrl}`, error);
+  console.error(`[error] ${req.method} ${req.originalUrl}: ${(error && error.message) ? error.message : error}`, (error && error.stack) ? error.stack : error);
   res.status(500).json({
     error: { code: 'INTERNAL_ERROR', message: 'Terjadi kesalahan pada server.' },
   });

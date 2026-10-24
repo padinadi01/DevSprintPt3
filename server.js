@@ -18,6 +18,12 @@ const app = express();
 const port = process.env.PORT || 8080;
 const appName = process.env.APP_NAME || 'Student 1 Service';
 
+if (typeof BigInt !== 'undefined') {
+  BigInt.prototype.toJSON = function () {
+    return Number(this);
+  };
+}
+
 // 1. Determine target schema from DATABASE_URL (?schema=...) or DB_SCHEMA env var
 let targetSchema = process.env.DB_SCHEMA || 'student1';
 if (process.env.DATABASE_URL) {
@@ -26,6 +32,9 @@ if (process.env.DATABASE_URL) {
     const schemaParam = parsed.searchParams.get('schema');
     if (schemaParam) {
       targetSchema = schemaParam;
+    } else {
+      parsed.searchParams.set('schema', targetSchema);
+      process.env.DATABASE_URL = parsed.toString();
     }
   } catch (err) {
     console.warn('Could not parse DATABASE_URL as URL, using schema:', targetSchema);

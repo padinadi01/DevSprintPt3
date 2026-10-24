@@ -39,13 +39,21 @@ export function formatStockBreakdown(
 }
 
 export function toProductDto(product: Product): ProductDto {
+  const toNum = (val: any) => {
+    if (!val) return 0;
+    if (typeof val === 'number') return val;
+    if (typeof val.toNumber === 'function') return val.toNumber();
+    const n = Number(val);
+    return isNaN(n) ? 0 : n;
+  };
+
   return {
     id: product.id,
     sku: product.sku,
     name: product.name,
     category: product.category,
-    purchasePrice: product.purchasePrice.toNumber(),
-    sellingPrice: product.sellingPrice.toNumber(),
+    purchasePrice: toNum(product.purchasePrice),
+    sellingPrice: toNum(product.sellingPrice),
     stock: product.stock,
     isActive: product.isActive,
     unitOfPurchase: product.unitOfPurchase,

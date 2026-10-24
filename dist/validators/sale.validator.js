@@ -7,7 +7,7 @@ const zod_1 = require("zod");
 const saleItemSchema = zod_1.z.object({
     productId: zod_1.z
         .string({ required_error: 'Produk wajib dipilih', invalid_type_error: 'ID produk tidak valid' })
-        .uuid('ID produk tidak valid'),
+        .min(1, 'ID produk tidak valid'),
     quantity: zod_1.z
         .number({ required_error: 'Jumlah wajib diisi', invalid_type_error: 'Jumlah harus berupa angka' })
         .int('Jumlah harus berupa bilangan bulat')

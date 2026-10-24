@@ -96,28 +96,27 @@ function createInitialStore() {
     }));
     const stockMovements = [];
     products.forEach((prod) => {
-        if (prod.stock > 0) {
-            stockMovements.push({
-                id: `sm-init-${prod.id}`,
-                productId: prod.id,
-                type: client_1.StockMovementType.INITIAL,
-                quantity: prod.stock,
-                beforeStock: 0,
-                afterStock: prod.stock,
-                note: 'Stok awal sistem',
-                referenceType: 'INITIAL',
-                referenceId: null,
-                createdAt: new Date(Date.now() - 7 * 86400000),
-            });
-        }
+        // Record initial ledger entry for all products so stock counts match StockMovement history exactly
+        stockMovements.push({
+            id: `sm-init-${prod.id}`,
+            productId: prod.id,
+            type: client_1.StockMovementType.INITIAL,
+            quantity: prod.stock,
+            beforeStock: 0,
+            afterStock: prod.stock,
+            note: 'Stok awal sistem',
+            referenceType: 'INITIAL',
+            referenceId: null,
+            createdAt: new Date(Date.now() - 7 * 86400000),
+        });
     });
-    // Example PO and Receipt for testing
+    // Example PO and Receipt for testing with valid schema fields
     const po1 = {
         id: 'po-1',
-        poNumber: 'PO-20261020-0001',
         supplierId: 'sup-1',
         status: client_1.PurchaseOrderStatus.OPEN,
-        notes: 'Pesanan restock mingguan',
+        orderDate: new Date(Date.now() - 2 * 86400000),
+        note: 'Pesanan restock mingguan',
         createdAt: new Date(Date.now() - 2 * 86400000),
         updatedAt: new Date(Date.now() - 2 * 86400000),
     };
@@ -126,7 +125,7 @@ function createInitialStore() {
             id: 'poi-1',
             purchaseOrderId: 'po-1',
             productId: products[4].id, // Minyak Goreng 1L
-            quantity: 10,
+            orderedQty: 10,
             unitPrice: 17500,
             receivedQty: 2,
         },
@@ -134,7 +133,7 @@ function createInitialStore() {
             id: 'poi-2',
             purchaseOrderId: 'po-1',
             productId: products[0].id, // Indomie Goreng
-            quantity: 5,
+            orderedQty: 5,
             unitPrice: 2800,
             receivedQty: 5,
         },

@@ -6,7 +6,7 @@ exports.stockAdjustmentSchema = zod_1.z
     .object({
     productId: zod_1.z
         .string({ required_error: 'Produk wajib dipilih', invalid_type_error: 'ID produk tidak valid' })
-        .uuid('ID produk tidak valid'),
+        .min(1, 'ID produk tidak valid'),
     // Mode A: Physical count (Stock Opname)
     newQty: zod_1.z
         .number({ invalid_type_error: 'Jumlah stok baru harus angka' })
@@ -46,5 +46,5 @@ exports.stockAdjustmentSchema = zod_1.z
     message: 'Harus mengisi jumlah stok baru (newQty) atau jenis dan jumlah penyesuaian (type & quantity)',
 });
 exports.listStockMovementsQuerySchema = zod_1.z.object({
-    productId: zod_1.z.string().uuid('ID produk tidak valid').optional(),
+    productId: zod_1.z.string().min(1, 'ID produk tidak valid').optional(),
 });

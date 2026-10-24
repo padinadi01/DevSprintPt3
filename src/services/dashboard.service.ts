@@ -37,10 +37,18 @@ export async function getDashboard(): Promise<DashboardDto> {
       }),
     ]);
 
+  const toNum = (val: any) => {
+    if (!val) return 0;
+    if (typeof val === 'number') return val;
+    if (typeof val.toNumber === 'function') return val.toNumber();
+    const n = Number(val);
+    return isNaN(n) ? 0 : n;
+  };
+
   const result: DashboardDto = {
     totalProducts,
     totalUnits: stockSum._sum.stock ?? 0,
-    todaySalesTotal: todaySales._sum.total?.toNumber() ?? 0,
+    todaySalesTotal: toNum(todaySales._sum.total),
     lowStockCount,
     lowStockThreshold: LOW_STOCK_THRESHOLD,
     latestSales: latestSales.map(toSaleSummaryDto),

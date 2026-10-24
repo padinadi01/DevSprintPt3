@@ -2,6 +2,12 @@ import express from 'express';
 import { errorHandler } from './middleware/error-handler';
 import { apiRouter } from './routes';
 
+if (typeof BigInt !== 'undefined') {
+  (BigInt.prototype as any).toJSON = function () {
+    return Number(this);
+  };
+}
+
 export const app = express();
 
 app.use(express.json());

@@ -23,4 +23,5 @@ exports.apiRouter.use('/receivers', receiver_routes_1.receiverRouter);
 exports.apiRouter.use('/suppliers', supplier_routes_1.supplierRouter);
 exports.apiRouter.use('/sales', sale_routes_1.saleRouter);
 exports.apiRouter.use('/dashboard', dashboard_routes_1.dashboardRouter);
+exports.apiRouter.use('/stock', stock_routes_1.stockRouter); // /stock/movements and /stock/adjustments
 exports.apiRouter.use('/', stock_routes_1.stockRouter); // /stock-adjustments and /stock-movements

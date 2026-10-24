@@ -23,6 +23,7 @@ apiRouter.use('/receivers', receiverRouter);
 apiRouter.use('/suppliers', supplierRouter);
 apiRouter.use('/sales', saleRouter);
 apiRouter.use('/dashboard', dashboardRouter);
+apiRouter.use('/stock', stockRouter); // /stock/movements and /stock/adjustments
 apiRouter.use('/', stockRouter); // /stock-adjustments and /stock-movements
 
 

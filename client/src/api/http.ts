@@ -80,10 +80,11 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
 
 export function getErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
+    const prefix = error.status ? `[HTTP ${error.status}] ` : '';
     if (error.details.length > 0) {
-      return `${error.message} ${error.details.map((detail) => detail.message).join('; ')}`;
+      return `${prefix}${error.message} (${error.details.map((detail) => detail.message).join('; ')})`;
     }
-    return error.message;
+    return `${prefix}${error.message}`;
   }
   if (error instanceof Error) return error.message;
   return 'Terjadi kesalahan tak terduga.';

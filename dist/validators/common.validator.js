@@ -3,5 +3,5 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.idParamSchema = void 0;
 const zod_1 = require("zod");
 exports.idParamSchema = zod_1.z.object({
-    id: zod_1.z.string().uuid('ID tidak valid'),
+    id: zod_1.z.string().min(1, 'ID tidak valid'),
 });

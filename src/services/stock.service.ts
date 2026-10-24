@@ -24,9 +24,9 @@ function toStockMovementDto(
   return {
     id: movement.id,
     productId: movement.productId,
-    productName: movement.product.name,
-    productSku: movement.product.sku,
-    productIsActive: movement.product.isActive,
+    productName: movement.product?.name || 'Produk',
+    productSku: movement.product?.sku || '-',
+    productIsActive: movement.product ? movement.product.isActive : true,
     type: movement.type,
     quantity: movement.quantity,
     beforeStock: movement.beforeStock,
@@ -35,7 +35,7 @@ function toStockMovementDto(
     referenceId: movement.referenceId,
     referenceLabel,
     note: movement.note,
-    createdAt: movement.createdAt.toISOString(),
+    createdAt: typeof movement.createdAt === 'string' ? movement.createdAt : movement.createdAt.toISOString(),
   };
 }
 

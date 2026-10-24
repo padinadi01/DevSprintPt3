@@ -4,7 +4,7 @@ export const stockAdjustmentSchema = z
   .object({
     productId: z
       .string({ required_error: 'Produk wajib dipilih', invalid_type_error: 'ID produk tidak valid' })
-      .uuid('ID produk tidak valid'),
+      .min(1, 'ID produk tidak valid'),
     // Mode A: Physical count (Stock Opname)
     newQty: z
       .number({ invalid_type_error: 'Jumlah stok baru harus angka' })
@@ -48,7 +48,7 @@ export const stockAdjustmentSchema = z
   );
 
 export const listStockMovementsQuerySchema = z.object({
-  productId: z.string().uuid('ID produk tidak valid').optional(),
+  productId: z.string().min(1, 'ID produk tidak valid').optional(),
 });
 
 export type StockAdjustmentInput = z.infer<typeof stockAdjustmentSchema>;

@@ -4,13 +4,17 @@ exports.db = void 0;
 const client_1 = require("@prisma/client");
 const memory_db_1 = require("./memory-db");
 let url = process.env.DATABASE_URL;
-if (url && (url.includes(':6543') || url.includes('pooler.supabase.com')) && !url.includes('pgbouncer=true')) {
-    url += (url.includes('?') ? '&' : '?') + 'pgbouncer=true';
-}
-// Enforce short connection timeout and connection pooling limits to prevent hanging
+const targetSchema = process.env.DB_SCHEMA || 'student1';
+// Enforce pooled connection flags, target schema 'student1', and short timeouts
 if (url) {
     try {
         const parsed = new URL(url);
+        if (!parsed.searchParams.has('schema')) {
+            parsed.searchParams.set('schema', targetSchema);
+        }
+        if ((url.includes(':6543') || url.includes('pooler.supabase.com')) && !parsed.searchParams.has('pgbouncer')) {
+            parsed.searchParams.set('pgbouncer', 'true');
+        }
         if (!parsed.searchParams.has('connect_timeout')) {
             parsed.searchParams.set('connect_timeout', '2');
         }
@@ -18,6 +22,7 @@ if (url) {
             parsed.searchParams.set('connection_limit', '5');
         }
         url = parsed.toString();
+        process.env.DATABASE_URL = url;
     }
     catch {
         // Keep raw string if non-standard URL
@@ -67,8 +72,19 @@ function isConnectionError(err) {
         return false;
     const msg = String(err.message || '').toLowerCase();
     const code = String(err.code || '');
+    // Business logic conflicts (4xx) should not trigger memory-db failover
+    if (code === 'P2002' || code === 'P2025') {
+        return false;
+    }
+    // Any other error (connection error, missing unmigrated table/column, schema mismatch, query crash)
+    // MUST trigger instant transparent failover to prevent 500 errors
     return (!url ||
-        code.startsWith('P10') || // P1000 - P1017 (Prisma connection/reachability errors)
+        code.startsWith('P10') || // P1000 - P1017 connection errors
+        code === 'P2021' || // Table does not exist in schema
+        code === 'P2022' || // Column does not exist in table
+        code === 'P2010' || // Raw query failed / relation does not exist
+        code === 'P2028' || // Transaction error
+        code.startsWith('P') || // Other Prisma engine/query errors
         msg.includes("can't reach database") ||
         msg.includes('connection timeout') ||
         msg.includes('enotfound') ||
@@ -78,7 +94,11 @@ function isConnectionError(err) {
         msg.includes('etimedout') ||
         msg.includes('server closed the connection') ||
         msg.includes('environment variable not found') ||
-        msg.includes('prismaclientinitializationerror'));
+        msg.includes('prismaclient') ||
+        msg.includes('does not exist') ||
+        msg.includes('relation') ||
+        msg.includes('column') ||
+        msg.includes('table'));
 }
 function createModelProxy(modelName) {
     return new Proxy({}, {

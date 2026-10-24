@@ -20,8 +20,8 @@ exports.stockRouter.post('/stock-adjustments', auth_middleware_1.authenticate, (
         next(error);
     }
 });
-// C3: Lihat riwayat pergerakan stok: Staf & Pemilik
-exports.stockRouter.get('/stock-movements', auth_middleware_1.authenticate, async (req, res, next) => {
+// C3: Lihat riwayat pergerakan stok: Staf & Pemilik (support both /stock-movements and /stock/movements)
+exports.stockRouter.get(['/stock-movements', '/stock/movements', '/movements'], auth_middleware_1.authenticate, async (req, res, next) => {
     try {
         const filter = stock_validator_1.listStockMovementsQuerySchema.parse(req.query);
         res.json(await (0, stock_service_1.listStockMovements)(filter));

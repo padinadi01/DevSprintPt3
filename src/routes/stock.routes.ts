@@ -26,8 +26,8 @@ stockRouter.post(
   }
 });
 
-// C3: Lihat riwayat pergerakan stok: Staf & Pemilik
-stockRouter.get('/stock-movements', authenticate, async (req, res, next) => {
+// C3: Lihat riwayat pergerakan stok: Staf & Pemilik (support both /stock-movements and /stock/movements)
+stockRouter.get(['/stock-movements', '/stock/movements', '/movements'], authenticate, async (req, res, next) => {
   try {
     const filter = listStockMovementsQuerySchema.parse(req.query);
     res.json(await listStockMovements(filter));
