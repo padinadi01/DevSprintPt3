@@ -7,7 +7,7 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "build:server": "tsc -p tsconfig.build.json",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate || true"
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",
