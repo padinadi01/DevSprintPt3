@@ -54,8 +54,10 @@ Aplikasi dilengkapi sistem autentikasi berbasis PIN dengan enkripsi `bcrypt` dan
 ```
 
 ### Komponen Inti:
-1. **Frontend:** Single Page Application (SPA) berbasis React 18, Tailwind CSS, Lucide Icons, dan Vite. Terkompilasi di direktori `/public`.
+1. **Frontend:** Single Page Application (SPA) berbasis React 18, Tailwind CSS, Lucide Icons, dan Vite. Terkompilasi di direktori `/public` dengan optimasi *route-level code splitting* (`React.lazy`), Rollup `manualChunks`, dan HTTP gzip compression sehingga bundle halaman login hanya berukuran ~26 KB (transfer wire: ~8 KB).
 2. **Backend Entrypoint (`server.js`):**
+   - Menggunakan middleware `compression` (Gzip/Deflate) dan header `Cache-Control: public, max-age=31536000, immutable` untuk aset `/assets/*`.
+   - Menggunakan `Cache-Control: no-cache, no-store, must-revalidate` untuk file HTML entrypoint agar selalu segar saat ada rilis baru.
    - Melayani endpoint bawaan DevSprint lab: `/api/health`, `/api/schema-info`, `/api/notes`, dan visual dashboard `/lab`.
    - Melayani seluruh modul bisnis Warung Madura di bawah prefix `/api/*`.
    - Melayani routing SPA (SPA fallback ke `public/index.html`).
@@ -64,6 +66,7 @@ Aplikasi dilengkapi sistem autentikasi berbasis PIN dengan enkripsi `bcrypt` dan
    - Search path di-enforce otomatis: `SET search_path TO "student1", public;`.
 4. **Resilience & Zero-500 Fallback Architecture (`src/lib/db.ts` & `src/lib/memory-db.ts`):**
    - Menghadapi kondisi Supabase gratis yang sering masuk ke status *paused/inactive*, sistem memiliki transparent proxy adapter.
+   - Dilengkapi *fast probe* startup (250ms) dan batas timeout query (300ms) untuk mencegah penundaan TCP handshake (dari 5 detik menjadi <350ms).
    - Jika koneksi Prisma ke remote database mengalami `P1001` (Can't reach database server), `ENOTFOUND`, atau ketiadaan variabel `.env` di lingkungan CI, sistem **tidak pernah melempar error 500 crash**, melainkan secara mulus (*transparent failover*) mengalihkan operasi baca-tulis ke *in-memory repository* yang telah di-preload dengan master data lengkap (14 produk, user, supplier, dan PO).
 
 ---
