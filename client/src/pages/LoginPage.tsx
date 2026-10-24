@@ -120,8 +120,8 @@ export function LoginPage() {
       <div className="w-full max-w-md space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-green-600 to-emerald-400 text-3xl shadow-lg shadow-green-500/20">
-            🏪
+          <div className="inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-tr from-green-600 to-emerald-400 p-1 shadow-lg shadow-green-500/20 overflow-hidden">
+            <img src="/market-icon.jpg" alt="Logo Warung Madura" className="h-full w-full object-cover rounded-xl" />
           </div>
           <h1 className="text-2xl font-extrabold tracking-tight text-white">
             Warung Madura <span className="text-emerald-400">Berkah 24 Jam</span>
