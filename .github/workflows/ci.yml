@@ -35,7 +35,11 @@ jobs:
           node --check server.js
           echo "Server syntax is valid!"
 
-      - name: 5. Test Docker Container Build
+      - name: 5. Run Unit Tests (Stock & Goods Receipt Logic)
+        run: |
+          npm test
+
+      - name: 6. Test Docker Container Build
         run: |
           echo "Building Docker image step-by-step..."
           docker build -t test-image:latest .

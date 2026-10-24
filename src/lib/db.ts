@@ -1,12 +1,122 @@
 import { PrismaClient } from '@prisma/client';
+import { createMemoryDb } from './memory-db';
 
 let url = process.env.DATABASE_URL;
 if (url && (url.includes(':6543') || url.includes('pooler.supabase.com')) && !url.includes('pgbouncer=true')) {
   url += (url.includes('?') ? '&' : '?') + 'pgbouncer=true';
 }
 
-// The one shared Prisma client. Every service imports `db` from here.
-export const db = new PrismaClient({
+const prisma = new PrismaClient({
   datasources: url ? { db: { url } } : undefined,
-  log: ['warn', 'error'],
+  log: ['error'],
+});
+
+const memoryDb = createMemoryDb();
+let remoteDbOffline = false;
+
+function isConnectionError(err: any): boolean {
+  if (!err) return false;
+  const msg = String(err.message || '').toLowerCase();
+  const code = String(err.code || '');
+  return (
+    code.startsWith('P10') || // P1000 - P1017 (Prisma connection/reachability errors)
+    msg.includes("can't reach database") ||
+    msg.includes('enotfound') ||
+    msg.includes('tenant/user') ||
+    msg.includes('connection terminated') ||
+    msg.includes('econnrefused') ||
+    msg.includes('etimedout') ||
+    msg.includes('server closed the connection')
+  );
+}
+
+function createModelProxy(modelName: string): any {
+  return new Proxy(
+    {},
+    {
+      get(_target, method: string) {
+        return async (...args: any[]) => {
+          if (remoteDbOffline) {
+            const memModel = (memoryDb as any)[modelName];
+            if (memModel && typeof memModel[method] === 'function') {
+              return memModel[method](...args);
+            }
+            throw new Error(`In-memory database does not support ${modelName}.${method}`);
+          }
+
+          try {
+            const prismaModel = (prisma as any)[modelName];
+            if (prismaModel && typeof prismaModel[method] === 'function') {
+              return await prismaModel[method](...args);
+            }
+          } catch (err: any) {
+            if (isConnectionError(err)) {
+              remoteDbOffline = true;
+              console.warn(
+                `[DB Resilience] Remote database unreachable (${err.message.split('\n')[0]}). Falling back to in-memory store for ${modelName}.${method}.`
+              );
+              const memModel = (memoryDb as any)[modelName];
+              if (memModel && typeof memModel[method] === 'function') {
+                return memModel[method](...args);
+              }
+            }
+            throw err;
+          }
+
+          const memModel = (memoryDb as any)[modelName];
+          if (memModel && typeof memModel[method] === 'function') {
+            return memModel[method](...args);
+          }
+          throw new Error(`Method ${modelName}.${method} not found on database`);
+        };
+      },
+    }
+  );
+}
+
+export const db: PrismaClient = new Proxy(prisma, {
+  get(target, prop: string) {
+    if (prop === '$transaction') {
+      return async (cbOrList: any, ...rest: any[]) => {
+        if (remoteDbOffline) {
+          return memoryDb.$transaction(cbOrList);
+        }
+        try {
+          return await (target as any).$transaction(cbOrList, ...rest);
+        } catch (err: any) {
+          if (isConnectionError(err)) {
+            remoteDbOffline = true;
+            console.warn(`[DB Resilience] Transaction failed on remote DB. Falling back to in-memory transaction.`);
+            return memoryDb.$transaction(cbOrList);
+          }
+          throw err;
+        }
+      };
+    }
+
+    if (prop === '$connect' || prop === '$disconnect') {
+      return async () => {};
+    }
+
+    // Known models
+    const models = [
+      'user',
+      'product',
+      'stockMovement',
+      'goodsReceipt',
+      'goodsReceiptItem',
+      'purchaseOrder',
+      'purchaseOrderItem',
+      'sale',
+      'saleItem',
+      'receiver',
+      'supplier',
+    ];
+
+    if (models.includes(prop)) {
+      return createModelProxy(prop);
+    }
+
+    return (target as any)[prop];
+  },
 });
