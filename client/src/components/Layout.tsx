@@ -53,7 +53,7 @@ export function Layout() {
           <div className="px-5 py-5 border-b border-slate-100 flex items-center justify-between">
             <div>
               <p className="text-base font-bold text-slate-900 flex items-center gap-1.5">
-                <img src="/market-icon.jpg" alt="Logo" className="h-6 w-6 rounded-md object-cover shadow-xs inline-block" /> Warung Madura
+                <img src="/market-icon.webp" alt="Logo" className="h-6 w-6 rounded-md object-cover shadow-xs inline-block" /> Warung Madura
               </p>
               <p className="text-xs text-slate-500 font-medium">Stock Manager • Berkah 24 Jam</p>
             </div>
