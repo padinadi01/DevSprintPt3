@@ -87,6 +87,12 @@ async function initDatabase() {
 app.use(compression());
 app.use(express.json());
 
+// Enforce X-Robots-Tag: noindex, nofollow, noarchive on all /api endpoints
+app.use('/api', (req, res, next) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  next();
+});
+
 // 4. Lab REST API Endpoints
 
 // Cloud Run Health check
@@ -210,14 +216,17 @@ try {
   const { apiRouter } = require('./dist/routes');
   const { errorHandler } = require('./dist/middleware/error-handler');
   app.use('/api', apiRouter);
-  app.use('/api', (req, res) => {
-    res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Endpoint tidak ditemukan.' } });
-  });
   app.use(errorHandler);
   console.log('[Warung Madura] REST APIs mounted successfully.');
 } catch (err) {
   console.error('[Warung Madura] Error mounting API routes:', err);
 }
+
+// Fallback for unknown /api/* endpoints - always return real 404 JSON (never HTML or 200)
+app.use('/api', (req, res) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Endpoint API tidak ditemukan.' } });
+});
 
 // 6. Serve Compiled Frontend & Lab Dashboard
 const publicPath = path.join(__dirname, 'public');
@@ -241,6 +250,7 @@ app.use(express.static(publicPath, {
 
 // DevSprint Container Lab Dashboard (/lab)
 app.get(['/lab', '/lab-dashboard', '/notes-dashboard'], async (req, res) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
   let dbStatus = {
     connected: false,
     user: 'N/A',
@@ -598,7 +608,18 @@ app.get(['/lab', '/lab-dashboard', '/notes-dashboard'], async (req, res) => {
 
 // 7. SPA Fallback for Warung Madura Stock Manager
 app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api')) return next();
+  if (req.path.startsWith('/api')) {
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+    return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Endpoint API tidak ditemukan.' } });
+  }
+
+  // Only public landing/login pages should be indexable
+  // Private pages (dashboard, stock, products, orders, pos, rbac, etc.) get X-Robots-Tag: noindex
+  const publicPaths = new Set(['/', '/login', '/index.html']);
+  if (!publicPaths.has(req.path)) {
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  }
+
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');

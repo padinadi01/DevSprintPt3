@@ -1,1 +1,0 @@
-import{r as s}from"./index-DXULntMO.js";function r(){return s("/sales")}function a(e){return s(`/sales/${e}`)}function n(e){return s("/sales",{method:"POST",body:{items:e}})}export{n as c,a as g,r as l};

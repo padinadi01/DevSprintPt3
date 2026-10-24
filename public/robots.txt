@@ -1,0 +1,16 @@
+User-agent: *
+Allow: /
+Allow: /login
+Disallow: /api/
+Disallow: /lab
+Disallow: /lab-dashboard
+Disallow: /notes-dashboard
+Disallow: /stok
+Disallow: /produk
+Disallow: /pesanan
+Disallow: /penjualan
+Disallow: /riwayat-penjualan
+Disallow: /riwayat-stok
+Disallow: /rbac-control
+
+Sitemap: https://student1-131481044262.asia-southeast1.run.app/sitemap.xml

@@ -746,7 +746,7 @@ export function RbacControlPage() {
             </thead>
             <tbody className="divide-y divide-slate-200">
               {loadingUsers ? (
-                <tr>
+                <tr data-nosnippet aria-hidden="true">
                   <td colSpan={5} className="py-6 text-center text-slate-400">
                     Memuat data pengguna...
                   </td>

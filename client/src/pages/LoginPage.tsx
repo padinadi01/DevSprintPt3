@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/auth';
 import { ApiError } from '../api/http';
+import { SeoHead } from '../components/SeoHead';
 
 interface PresetAccount {
   username: string;
@@ -115,6 +116,7 @@ export function LoginPage() {
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-center items-center p-4">
+      <SeoHead title="Masuk Akun - Warung Madura Stock Manager" description="Halaman masuk akun pengelola toko Warung Madura 24 Jam. Masukkan username dan PIN untuk mengakses sistem kasir, mutasi stok, dan laporan toko." noindex={false} canonical="https://student1-131481044262.asia-southeast1.run.app/login" />
       <div className="w-full max-w-md space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
@@ -280,12 +282,12 @@ export function LoginPage() {
               className="w-full rounded-xl bg-emerald-600 hover:bg-emerald-500 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-600/30 transition-all disabled:opacity-50 active:scale-[0.98] flex items-center justify-center gap-2 mt-4"
             >
               {loading ? (
-                <>
+                <span data-nosnippet aria-hidden="true" className="inline-flex items-center gap-2">
                   <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                   <span>Memverifikasi PIN...</span>
-                </>
+                </span>
               ) : (
-                <span>Masuk Sekarang →</span>
+                <span>Masuk Sekarang &rarr;</span>
               )}
             </button>
           </form>

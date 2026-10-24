@@ -5,6 +5,7 @@ import { PageHeader } from './components/PageHeader';
 import { btnSecondary } from './components/ui';
 import { useAuth } from './lib/auth';
 import { LoginPage } from './pages/LoginPage';
+import { SeoHead } from './components/SeoHead';
 
 // Route-level code splitting: keep LoginPage synchronous so /login renders instantly,
 // while lazy-loading internal feature pages on demand.
@@ -22,7 +23,7 @@ const RbacControlPage = lazy(() => import('./pages/RbacControlPage').then((m) =>
 
 function PageFallback() {
   return (
-    <div className="flex items-center justify-center p-12 text-slate-500">
+    <div data-nosnippet aria-hidden="true" className="flex items-center justify-center p-12 text-slate-500">
       <div className="h-7 w-7 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
     </div>
   );
@@ -31,6 +32,7 @@ function PageFallback() {
 function NotFoundPage() {
   return (
     <div>
+      <SeoHead title="Halaman Tidak Ditemukan" description="Halaman tidak ditemukan." noindex={true} />
       <PageHeader title="Halaman tidak ditemukan" description="Alamat yang kamu buka tidak tersedia." />
       <Link to="/" className={btnSecondary}>
         Kembali ke Dashboard
@@ -45,7 +47,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white">
+      <div data-nosnippet aria-hidden="true" className="min-h-screen flex items-center justify-center bg-slate-900 text-white">
         <div className="text-center space-y-3">
           <div className="h-9 w-9 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
           <p className="text-xs text-slate-400 font-medium">Memuat sesi Warung Madura...</p>
@@ -76,6 +78,11 @@ export default function App() {
           index
           element={
             <Suspense fallback={<PageFallback />}>
+              <SeoHead
+                title="Dashboard Ringkasan"
+                description="Dashboard ringkasan finansial dan stok warung."
+                noindex={true}
+              />
               <DashboardPage />
             </Suspense>
           }
@@ -84,6 +91,11 @@ export default function App() {
           path="stok"
           element={
             <Suspense fallback={<PageFallback />}>
+              <SeoHead
+                title="Katalog Stok Produk"
+                description="Manajemen inventaris stok barang."
+                noindex={true}
+              />
               <InventoryPage />
             </Suspense>
           }
@@ -92,6 +104,11 @@ export default function App() {
           path="produk"
           element={
             <Suspense fallback={<PageFallback />}>
+              <SeoHead
+                title="Master Data Produk"
+                description="Pengaturan katalog produk dan harga."
+                noindex={true}
+              />
               <ProductsPage />
             </Suspense>
           }
@@ -100,6 +117,11 @@ export default function App() {
           path="pesanan"
           element={
             <Suspense fallback={<PageFallback />}>
+              <SeoHead
+                title="Surat Pesanan Pembelian"
+                description="Daftar surat pesanan barang ke supplier."
+                noindex={true}
+              />
               <PurchaseOrdersPage />
             </Suspense>
           }
@@ -108,6 +130,11 @@ export default function App() {
           path="pesanan/baru"
           element={
             <Suspense fallback={<PageFallback />}>
+              <SeoHead
+                title="Buat Pesanan Baru"
+                description="Formulir pemesanan barang ke supplier."
+                noindex={true}
+              />
               <NewPurchaseOrderPage />
             </Suspense>
           }
@@ -116,6 +143,11 @@ export default function App() {
           path="pesanan/:id"
           element={
             <Suspense fallback={<PageFallback />}>
+              <SeoHead
+                title="Detail Surat Pesanan"
+                description="Detail penerimaan dan status pesanan pembelian."
+                noindex={true}
+              />
               <PurchaseOrderDetailPage />
             </Suspense>
           }
@@ -124,6 +156,11 @@ export default function App() {
           path="penjualan/baru"
           element={
             <Suspense fallback={<PageFallback />}>
+              <SeoHead
+                title="Kasir Penjualan"
+                description="Point of Sale kasir transaksi penjualan 24 jam."
+                noindex={true}
+              />
               <NewSalePage />
             </Suspense>
           }
@@ -132,6 +169,11 @@ export default function App() {
           path="riwayat-penjualan"
           element={
             <Suspense fallback={<PageFallback />}>
+              <SeoHead
+                title="Riwayat Penjualan"
+                description="Histori struk dan transaksi kasir."
+                noindex={true}
+              />
               <SalesHistoryPage />
             </Suspense>
           }
@@ -140,6 +182,11 @@ export default function App() {
           path="riwayat-penjualan/:id"
           element={
             <Suspense fallback={<PageFallback />}>
+              <SeoHead
+                title="Detail Transaksi Penjualan"
+                description="Detail faktur dan item penjualan kasir."
+                noindex={true}
+              />
               <SaleDetailPage />
             </Suspense>
           }
@@ -148,6 +195,11 @@ export default function App() {
           path="riwayat-stok"
           element={
             <Suspense fallback={<PageFallback />}>
+              <SeoHead
+                title="Riwayat Mutasi Stok"
+                description="Audit log kartu mutasi stok masuk dan keluar."
+                noindex={true}
+              />
               <StockHistoryPage />
             </Suspense>
           }
@@ -156,6 +208,11 @@ export default function App() {
           path="rbac-control"
           element={
             <Suspense fallback={<PageFallback />}>
+              <SeoHead
+                title="Master Control Hak Akses & Karyawan"
+                description="Pengaturan role staf dan izin akses warung."
+                noindex={true}
+              />
               <RbacControlPage />
             </Suspense>
           }
