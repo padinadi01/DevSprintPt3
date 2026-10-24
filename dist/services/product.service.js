@@ -11,6 +11,7 @@ exports.deleteProduct = deleteProduct;
 const client_1 = require("@prisma/client");
 const constants_1 = require("../lib/constants");
 const db_1 = require("../lib/db");
+const cache_1 = require("../lib/cache");
 const errors_1 = require("../lib/errors");
 const prisma_errors_1 = require("../lib/prisma-errors");
 const PRODUCT_NOT_FOUND = 'Produk tidak ditemukan.';
@@ -48,6 +49,13 @@ function toProductDto(product) {
     };
 }
 async function listProducts(filter = {}) {
+    const isCacheable = !filter.search;
+    const cacheKey = isCacheable ? (filter.inStock ? 'products:inStock' : 'products:all') : null;
+    if (cacheKey) {
+        const cached = cache_1.cache.get(cacheKey);
+        if (cached)
+            return cached;
+    }
     const where = {};
     if (filter.search) {
         where.OR = [
@@ -61,7 +69,11 @@ async function listProducts(filter = {}) {
         where.isActive = true;
     }
     const products = await db_1.db.product.findMany({ where, orderBy: { name: 'asc' } });
-    return products.map(toProductDto);
+    const result = products.map(toProductDto);
+    if (cacheKey) {
+        cache_1.cache.set(cacheKey, result, 15000);
+    }
+    return result;
 }
 async function getProduct(id) {
     const product = await db_1.db.product.findUnique({ where: { id } });
@@ -97,6 +109,8 @@ async function createProduct(input) {
             }
             return created;
         });
+        cache_1.cache.invalidate('products');
+        cache_1.cache.invalidate('dashboard');
         return toProductDto(product);
     }
     catch (error) {
@@ -108,6 +122,8 @@ async function createProduct(input) {
 async function updateProduct(id, input) {
     try {
         const product = await db_1.db.product.update({ where: { id }, data: input });
+        cache_1.cache.invalidate('products');
+        cache_1.cache.invalidate('dashboard');
         return toProductDto(product);
     }
     catch (error) {
@@ -124,6 +140,8 @@ async function setProductStatus(id, input) {
             where: { id },
             data: { isActive: input.isActive },
         });
+        cache_1.cache.invalidate('products');
+        cache_1.cache.invalidate('dashboard');
         return toProductDto(product);
     }
     catch (error) {
@@ -132,9 +150,6 @@ async function setProductStatus(id, input) {
         throw error;
     }
 }
-// Hard delete. A product can only be removed while nothing but its own initial stock entry refers
-// to it. The foreign keys in PostgreSQL (ON DELETE RESTRICT) are the final guard; the checks below
-// exist to give the owner a clear message.
 async function deleteProduct(id) {
     const product = await db_1.db.product.findUnique({ where: { id }, select: { id: true } });
     if (!product)
@@ -152,6 +167,8 @@ async function deleteProduct(id) {
             db_1.db.stockMovement.deleteMany({ where: { productId: id, type: client_1.StockMovementType.INITIAL } }),
             db_1.db.product.delete({ where: { id } }),
         ]);
+        cache_1.cache.invalidate('products');
+        cache_1.cache.invalidate('dashboard');
     }
     catch (error) {
         // Someone referenced the product between the checks above and the delete.

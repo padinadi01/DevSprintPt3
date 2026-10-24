@@ -4,9 +4,14 @@ exports.getDashboard = getDashboard;
 const constants_1 = require("../lib/constants");
 const db_1 = require("../lib/db");
 const dates_1 = require("../lib/dates");
+const cache_1 = require("../lib/cache");
 const product_service_1 = require("./product.service");
 const sale_service_1 = require("./sale.service");
+const DASHBOARD_CACHE_KEY = 'dashboard:metrics';
 async function getDashboard() {
+    const cached = cache_1.cache.get(DASHBOARD_CACHE_KEY);
+    if (cached)
+        return cached;
     const now = new Date();
     const activeWhere = { isActive: true };
     const lowStockWhere = { stock: { lte: constants_1.LOW_STOCK_THRESHOLD }, isActive: true };
@@ -29,7 +34,7 @@ async function getDashboard() {
             take: 10,
         }),
     ]);
-    return {
+    const result = {
         totalProducts,
         totalUnits: stockSum._sum.stock ?? 0,
         todaySalesTotal: todaySales._sum.total?.toNumber() ?? 0,
@@ -38,4 +43,6 @@ async function getDashboard() {
         latestSales: latestSales.map(sale_service_1.toSaleSummaryDto),
         lowStockProducts: lowStockProducts.map(product_service_1.toProductDto),
     };
+    cache_1.cache.set(DASHBOARD_CACHE_KEY, result, 15000);
+    return result;
 }

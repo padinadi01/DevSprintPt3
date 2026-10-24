@@ -1,5 +1,6 @@
 import { Prisma, StockMovementType } from '@prisma/client';
 import { db } from '../lib/db';
+import { cache } from '../lib/cache';
 import { ConflictError, NotFoundError } from '../lib/errors';
 import type { GoodsReceiptDto, RejectedClaimItemDto } from '../types/dto';
 import type {
@@ -489,6 +490,8 @@ export async function createGoodsReceipt(input: CreateGoodsReceiptInput): Promis
     return receipt.id;
   });
 
+  cache.invalidate('products');
+  cache.invalidate('dashboard');
   return getGoodsReceipt(createdReceiptId);
 }
 
@@ -636,5 +639,7 @@ export async function reverseGoodsReceipt(
     }
   });
 
+  cache.invalidate('products');
+  cache.invalidate('dashboard');
   return getGoodsReceipt(id);
 }

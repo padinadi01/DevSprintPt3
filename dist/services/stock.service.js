@@ -5,6 +5,7 @@ exports.listStockMovements = listStockMovements;
 const client_1 = require("@prisma/client");
 const constants_1 = require("../lib/constants");
 const db_1 = require("../lib/db");
+const cache_1 = require("../lib/cache");
 const errors_1 = require("../lib/errors");
 const MAX_MOVEMENTS_IN_LIST = 300;
 const movementInclude = {
@@ -120,7 +121,10 @@ async function adjustStock(input) {
             },
             include: movementInclude,
         });
-        return toStockMovementDto(movement, null);
+        const res = toStockMovementDto(movement, null);
+        cache_1.cache.invalidate('products');
+        cache_1.cache.invalidate('dashboard');
+        return res;
     });
 }
 async function listStockMovements(filter) {

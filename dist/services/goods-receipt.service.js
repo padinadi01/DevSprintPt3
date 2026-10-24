@@ -7,6 +7,7 @@ exports.createGoodsReceipt = createGoodsReceipt;
 exports.reverseGoodsReceipt = reverseGoodsReceipt;
 const client_1 = require("@prisma/client");
 const db_1 = require("../lib/db");
+const cache_1 = require("../lib/cache");
 const errors_1 = require("../lib/errors");
 const goodsReceiptInclude = {
     supplier: { select: { name: true } },
@@ -423,6 +424,8 @@ async function createGoodsReceipt(input) {
         }
         return receipt.id;
     });
+    cache_1.cache.invalidate('products');
+    cache_1.cache.invalidate('dashboard');
     return getGoodsReceipt(createdReceiptId);
 }
 async function reverseGoodsReceipt(id, input) {
@@ -538,5 +541,7 @@ async function reverseGoodsReceipt(id, input) {
             }
         }
     });
+    cache_1.cache.invalidate('products');
+    cache_1.cache.invalidate('dashboard');
     return getGoodsReceipt(id);
 }

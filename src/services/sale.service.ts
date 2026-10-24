@@ -1,6 +1,7 @@
 import { Prisma, StockMovementType, type Product } from '@prisma/client';
 import { PRODUCT_INACTIVE_MESSAGE } from '../lib/constants';
 import { db } from '../lib/db';
+import { cache } from '../lib/cache';
 import { endOfDayWib, formatDateKeyWib, startOfDayWib } from '../lib/dates';
 import { ConflictError, NotFoundError } from '../lib/errors';
 import type { SaleDetailDto, SaleSummaryDto } from '../types/dto';
@@ -176,5 +177,7 @@ export async function createSale(input: CreateSaleInput): Promise<SaleDetailDto>
     return sale.id;
   });
 
+  cache.invalidate('products');
+  cache.invalidate('dashboard');
   return getSale(saleId);
 }

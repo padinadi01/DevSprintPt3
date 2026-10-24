@@ -1,6 +1,7 @@
 import { Prisma, StockMovementType } from '@prisma/client';
 import { PRODUCT_INACTIVE_STOCK_MESSAGE } from '../lib/constants';
 import { db } from '../lib/db';
+import { cache } from '../lib/cache';
 import { ConflictError, NotFoundError } from '../lib/errors';
 import type { StockMovementDto } from '../types/dto';
 import type {
@@ -148,7 +149,10 @@ export async function adjustStock(input: StockAdjustmentInput): Promise<StockMov
       include: movementInclude,
     });
 
-    return toStockMovementDto(movement, null);
+    const res = toStockMovementDto(movement, null);
+    cache.invalidate('products');
+    cache.invalidate('dashboard');
+    return res;
   });
 }
 

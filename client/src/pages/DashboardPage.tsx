@@ -6,7 +6,7 @@ import { cardClass, btnPrimary, btnSecondary } from '../components/ui';
 import { formatDateTime, formatNumber, formatRupiah } from '../lib/format';
 import { useAsyncData } from '../lib/useAsyncData';
 import { useAuth } from '../lib/auth';
-import { useEffect } from 'react';
+import { useCallback } from 'react';
 
 interface StatCardProps {
   label: string;
@@ -27,13 +27,17 @@ function StatCard({ label, value, hint }: StatCardProps) {
 export function DashboardPage() {
   const { user, isPemilik, hasPermission, quickSwitch } = useAuth();
   const canViewDashboard = isPemilik || hasPermission('VIEW_DASHBOARD');
-  const { data, error, loading, reload } = useAsyncData(getDashboard);
+  const loadDashboard = useCallback(async () => {
+    if (!canViewDashboard) return null;
+    return getDashboard();
+  }, [canViewDashboard]);
+  const { data, error, loading, reload } = useAsyncData(loadDashboard);
 
-  useEffect(() => {
-    if (canViewDashboard) {
-      reload();
-    }
-  }, [user, canViewDashboard]);
+
+
+
+
+
 
   if (!canViewDashboard) {
     return (

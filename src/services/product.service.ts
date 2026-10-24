@@ -4,6 +4,7 @@ import {
   PRODUCT_IN_TRANSACTION_MESSAGE,
 } from '../lib/constants';
 import { db } from '../lib/db';
+import { cache } from '../lib/cache';
 import { ConflictError, NotFoundError } from '../lib/errors';
 import { hasPrismaCode } from '../lib/prisma-errors';
 import type { ProductDto } from '../types/dto';
@@ -62,6 +63,14 @@ export function toProductDto(product: Product): ProductDto {
 }
 
 export async function listProducts(filter: Partial<ListProductsFilter> = {}): Promise<ProductDto[]> {
+  const isCacheable = !filter.search;
+  const cacheKey = isCacheable ? (filter.inStock ? 'products:inStock' : 'products:all') : null;
+
+  if (cacheKey) {
+    const cached = cache.get<ProductDto[]>(cacheKey);
+    if (cached) return cached;
+  }
+
   const where: Prisma.ProductWhereInput = {};
 
   if (filter.search) {
@@ -77,7 +86,13 @@ export async function listProducts(filter: Partial<ListProductsFilter> = {}): Pr
   }
 
   const products = await db.product.findMany({ where, orderBy: { name: 'asc' } });
-  return products.map(toProductDto);
+  const result = products.map(toProductDto);
+
+  if (cacheKey) {
+    cache.set(cacheKey, result, 15000);
+  }
+
+  return result;
 }
 
 export async function getProduct(id: string): Promise<ProductDto> {
@@ -117,6 +132,8 @@ export async function createProduct(input: CreateProductInput): Promise<ProductD
       return created;
     });
 
+    cache.invalidate('products');
+    cache.invalidate('dashboard');
     return toProductDto(product);
   } catch (error) {
     if (hasPrismaCode(error, 'P2002')) throw new ConflictError(SKU_ALREADY_USED);
@@ -127,6 +144,8 @@ export async function createProduct(input: CreateProductInput): Promise<ProductD
 export async function updateProduct(id: string, input: UpdateProductInput): Promise<ProductDto> {
   try {
     const product = await db.product.update({ where: { id }, data: input });
+    cache.invalidate('products');
+    cache.invalidate('dashboard');
     return toProductDto(product);
   } catch (error) {
     if (hasPrismaCode(error, 'P2025')) throw new NotFoundError(PRODUCT_NOT_FOUND);
@@ -144,6 +163,8 @@ export async function setProductStatus(
       where: { id },
       data: { isActive: input.isActive },
     });
+    cache.invalidate('products');
+    cache.invalidate('dashboard');
     return toProductDto(product);
   } catch (error) {
     if (hasPrismaCode(error, 'P2025')) throw new NotFoundError(PRODUCT_NOT_FOUND);
@@ -151,9 +172,6 @@ export async function setProductStatus(
   }
 }
 
-// Hard delete. A product can only be removed while nothing but its own initial stock entry refers
-// to it. The foreign keys in PostgreSQL (ON DELETE RESTRICT) are the final guard; the checks below
-// exist to give the owner a clear message.
 export async function deleteProduct(id: string): Promise<void> {
   const product = await db.product.findUnique({ where: { id }, select: { id: true } });
   if (!product) throw new NotFoundError(PRODUCT_NOT_FOUND);
@@ -171,6 +189,8 @@ export async function deleteProduct(id: string): Promise<void> {
       db.stockMovement.deleteMany({ where: { productId: id, type: StockMovementType.INITIAL } }),
       db.product.delete({ where: { id } }),
     ]);
+    cache.invalidate('products');
+    cache.invalidate('dashboard');
   } catch (error) {
     // Someone referenced the product between the checks above and the delete.
     if (hasPrismaCode(error, 'P2003')) throw new ConflictError(PRODUCT_IN_TRANSACTION_MESSAGE);

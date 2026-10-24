@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { db } from '../lib/db';
+import { cache } from '../lib/cache';
 import { UnauthorizedError } from '../lib/errors';
 import type { UserRole } from '@prisma/client';
 
@@ -24,15 +25,22 @@ export interface LoginResult {
 export async function loginWithPin(usernameOrName: string, pin: string): Promise<LoginResult> {
   const normalized = usernameOrName.trim().toLowerCase();
   
-  // Find user by username or name (case-insensitive)
-  const user = await db.user.findFirst({
-    where: {
-      OR: [
-        { username: { equals: normalized, mode: 'insensitive' } },
-        { name: { equals: normalized, mode: 'insensitive' } },
-      ],
-    },
+  // 1. Fast indexed lookup by unique username first (O(1))
+  let user = await db.user.findFirst({
+    where: { username: normalized },
   });
+
+  // 2. Fallback to name or case-insensitive if not found by exact username
+  if (!user) {
+    user = await db.user.findFirst({
+      where: {
+        OR: [
+          { username: { equals: normalized, mode: 'insensitive' } },
+          { name: { equals: normalized, mode: 'insensitive' } },
+        ],
+      },
+    });
+  }
 
   if (!user) {
     // C2: Pesan umum agar tidak membocorkan keberadaan username
@@ -69,7 +77,10 @@ export function verifyAuthToken(token: string): AuthUserPayload {
 }
 
 export async function listAllUsers() {
-  return db.user.findMany({
+  const cached = cache.get<any[]>('users:all');
+  if (cached) return cached;
+
+  const users = await db.user.findMany({
     select: {
       id: true,
       username: true,
@@ -87,10 +98,13 @@ export async function listAllUsers() {
     },
     orderBy: { role: 'asc' },
   });
+
+  cache.set('users:all', users, 30000);
+  return users;
 }
 
 export async function updateUserRole(userId: string, role: UserRole) {
-  return db.user.update({
+  const updated = await db.user.update({
     where: { id: userId },
     data: { role },
     select: {
@@ -102,10 +116,12 @@ export async function updateUserRole(userId: string, role: UserRole) {
       receiverId: true,
     },
   });
+  cache.invalidate('users');
+  return updated;
 }
 
 export async function updateUserPermissions(userId: string, permissions: string[]) {
-  return db.user.update({
+  const updated = await db.user.update({
     where: { id: userId },
     data: { permissions },
     select: {
@@ -117,11 +133,13 @@ export async function updateUserPermissions(userId: string, permissions: string[
       receiverId: true,
     },
   });
+  cache.invalidate('users');
+  return updated;
 }
 
 export async function updateUserPin(userId: string, pin: string) {
   const pinHash = await bcrypt.hash(pin, 10);
-  return db.user.update({
+  const updated = await db.user.update({
     where: { id: userId },
     data: { pinHash },
     select: {
@@ -133,6 +151,8 @@ export async function updateUserPin(userId: string, pin: string) {
       receiverId: true,
     },
   });
+  cache.invalidate('users');
+  return updated;
 }
 
 export async function createUser(data: {
@@ -144,7 +164,7 @@ export async function createUser(data: {
   receiverId?: string | null;
 }) {
   const pinHash = await bcrypt.hash(data.pin, 10);
-  return db.user.create({
+  const created = await db.user.create({
     data: {
       username: data.username.toLowerCase(),
       name: data.name,
@@ -163,15 +183,23 @@ export async function createUser(data: {
       createdAt: true,
     },
   });
+  cache.invalidate('users');
+  return created;
 }
 
 export async function switchUser(username: string): Promise<LoginResult> {
   const normalized = username.trim().toLowerCase();
-  const user = await db.user.findFirst({
-    where: {
-      username: { equals: normalized, mode: 'insensitive' },
-    },
+  let user = await db.user.findFirst({
+    where: { username: normalized },
   });
+
+  if (!user) {
+    user = await db.user.findFirst({
+      where: {
+        username: { equals: normalized, mode: 'insensitive' },
+      },
+    });
+  }
 
   if (!user) {
     throw new UnauthorizedError('Pengguna tidak ditemukan.');
@@ -189,4 +217,3 @@ export async function switchUser(username: string): Promise<LoginResult> {
   const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
   return { token, user: payload };
 }
-

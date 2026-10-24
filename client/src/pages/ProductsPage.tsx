@@ -27,7 +27,7 @@ type FormState = { mode: 'create' } | { mode: 'edit'; product: Product } | null;
 
 export function ProductsPage() {
   const toast = useToast();
-  const { user, isPemilik, hasPermission } = useAuth();
+  const { isPemilik, hasPermission } = useAuth();
   const canManageProducts = isPemilik || hasPermission('MANAGE_PRODUCTS');
   const canViewCost = isPemilik || hasPermission('VIEW_COST');
   const canAdjustStock = isPemilik || hasPermission('ADJUST_STOCK');
@@ -49,10 +49,6 @@ export function ProductsPage() {
 
   const loadProducts = useCallback(() => listProducts({ search: query }), [query]);
   const { data: products, error, loading, reload } = useAsyncData(loadProducts);
-
-  useEffect(() => {
-    reload();
-  }, [user]);
 
   async function handleConfirmDelete() {
     if (!deleteTarget) return;

@@ -14,20 +14,27 @@ exports.switchUser = switchUser;
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const db_1 = require("../lib/db");
+const cache_1 = require("../lib/cache");
 const errors_1 = require("../lib/errors");
 const JWT_SECRET = process.env.JWT_SECRET || 'warung-madura-secret-key-24jam';
 const JWT_EXPIRES_IN = '24h';
 async function loginWithPin(usernameOrName, pin) {
     const normalized = usernameOrName.trim().toLowerCase();
-    // Find user by username or name (case-insensitive)
-    const user = await db_1.db.user.findFirst({
-        where: {
-            OR: [
-                { username: { equals: normalized, mode: 'insensitive' } },
-                { name: { equals: normalized, mode: 'insensitive' } },
-            ],
-        },
+    // 1. Fast indexed lookup by unique username first (O(1))
+    let user = await db_1.db.user.findFirst({
+        where: { username: normalized },
     });
+    // 2. Fallback to name or case-insensitive if not found by exact username
+    if (!user) {
+        user = await db_1.db.user.findFirst({
+            where: {
+                OR: [
+                    { username: { equals: normalized, mode: 'insensitive' } },
+                    { name: { equals: normalized, mode: 'insensitive' } },
+                ],
+            },
+        });
+    }
     if (!user) {
         // C2: Pesan umum agar tidak membocorkan keberadaan username
         throw new errors_1.UnauthorizedError('Nama pengguna atau PIN salah.');
@@ -58,7 +65,10 @@ function verifyAuthToken(token) {
     }
 }
 async function listAllUsers() {
-    return db_1.db.user.findMany({
+    const cached = cache_1.cache.get('users:all');
+    if (cached)
+        return cached;
+    const users = await db_1.db.user.findMany({
         select: {
             id: true,
             username: true,
@@ -76,9 +86,11 @@ async function listAllUsers() {
         },
         orderBy: { role: 'asc' },
     });
+    cache_1.cache.set('users:all', users, 30000);
+    return users;
 }
 async function updateUserRole(userId, role) {
-    return db_1.db.user.update({
+    const updated = await db_1.db.user.update({
         where: { id: userId },
         data: { role },
         select: {
@@ -90,9 +102,11 @@ async function updateUserRole(userId, role) {
             receiverId: true,
         },
     });
+    cache_1.cache.invalidate('users');
+    return updated;
 }
 async function updateUserPermissions(userId, permissions) {
-    return db_1.db.user.update({
+    const updated = await db_1.db.user.update({
         where: { id: userId },
         data: { permissions },
         select: {
@@ -104,10 +118,12 @@ async function updateUserPermissions(userId, permissions) {
             receiverId: true,
         },
     });
+    cache_1.cache.invalidate('users');
+    return updated;
 }
 async function updateUserPin(userId, pin) {
     const pinHash = await bcryptjs_1.default.hash(pin, 10);
-    return db_1.db.user.update({
+    const updated = await db_1.db.user.update({
         where: { id: userId },
         data: { pinHash },
         select: {
@@ -119,10 +135,12 @@ async function updateUserPin(userId, pin) {
             receiverId: true,
         },
     });
+    cache_1.cache.invalidate('users');
+    return updated;
 }
 async function createUser(data) {
     const pinHash = await bcryptjs_1.default.hash(data.pin, 10);
-    return db_1.db.user.create({
+    const created = await db_1.db.user.create({
         data: {
             username: data.username.toLowerCase(),
             name: data.name,
@@ -141,14 +159,21 @@ async function createUser(data) {
             createdAt: true,
         },
     });
+    cache_1.cache.invalidate('users');
+    return created;
 }
 async function switchUser(username) {
     const normalized = username.trim().toLowerCase();
-    const user = await db_1.db.user.findFirst({
-        where: {
-            username: { equals: normalized, mode: 'insensitive' },
-        },
+    let user = await db_1.db.user.findFirst({
+        where: { username: normalized },
     });
+    if (!user) {
+        user = await db_1.db.user.findFirst({
+            where: {
+                username: { equals: normalized, mode: 'insensitive' },
+            },
+        });
+    }
     if (!user) {
         throw new errors_1.UnauthorizedError('Pengguna tidak ditemukan.');
     }

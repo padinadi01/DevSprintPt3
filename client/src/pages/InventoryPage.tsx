@@ -12,18 +12,22 @@ import type { Product } from '../types/api';
 
 export function InventoryPage() {
   const toast = useToast();
-  const { user, isPemilik, hasPermission } = useAuth();
+  const { isPemilik, hasPermission } = useAuth();
   const canViewCost = isPemilik || hasPermission('VIEW_COST');
   const canAdjustStock = isPemilik || hasPermission('ADJUST_STOCK');
   const [search, setSearch] = useState('');
-  const [adjustTarget, setAdjustTarget] = useState<Product | null>(null);
-
-  const loadProducts = useCallback(() => listProducts({ search }), [search]);
-  const { data: products, error, loading, reload } = useAsyncData(loadProducts);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   useEffect(() => {
-    reload();
-  }, [user]);
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 200);
+    return () => clearTimeout(timer);
+  }, [search]);
+  const [adjustTarget, setAdjustTarget] = useState<Product | null>(null);
+
+  const loadProducts = useCallback(() => listProducts({ search: debouncedSearch }), [debouncedSearch]);
+  const { data: products, error, loading, reload } = useAsyncData(loadProducts);
+
+
 
   return (
     <div className="space-y-6">

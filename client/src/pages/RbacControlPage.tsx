@@ -50,6 +50,7 @@ export function RbacControlPage() {
 
   // Create user form state
   const [showCreateUser, setShowCreateUser] = useState(false);
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
   const [newUsername, setNewUsername] = useState('');
   const [newName, setNewName] = useState('');
   const [newPin, setNewPin] = useState('');
@@ -147,8 +148,9 @@ export function RbacControlPage() {
   // Handle Create User
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsCreatingUser(true);
     try {
-      await apiCreateUser({
+      const created = await apiCreateUser({
         username: newUsername,
         name: newName,
         pin: newPin,
@@ -159,9 +161,12 @@ export function RbacControlPage() {
       setNewUsername('');
       setNewName('');
       setNewPin('');
-      await loadData();
+      setUsers((prev) => [...prev, created]);
+      apiListUsers().then(setUsers).catch(() => {});
     } catch (err: any) {
       toast.error(err.message || 'Gagal menambahkan pengguna baru');
+    } finally {
+      setIsCreatingUser(false);
     }
   };
 
@@ -722,11 +727,23 @@ export function RbacControlPage() {
                 type="button"
                 onClick={() => setShowCreateUser(false)}
                 className={btnSecondary}
+                disabled={isCreatingUser}
               >
                 Batal
               </button>
-              <button type="submit" className={btnPrimary}>
-                Simpan Pengguna
+              <button
+                type="submit"
+                disabled={isCreatingUser}
+                className={`${btnPrimary} flex items-center justify-center gap-2 disabled:opacity-50`}
+              >
+                {isCreatingUser ? (
+                  <>
+                    <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    <span>Menyimpan...</span>
+                  </>
+                ) : (
+                  'Simpan Pengguna'
+                )}
               </button>
             </div>
           </form>

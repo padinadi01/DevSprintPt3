@@ -8,6 +8,7 @@ exports.createSale = createSale;
 const client_1 = require("@prisma/client");
 const constants_1 = require("../lib/constants");
 const db_1 = require("../lib/db");
+const cache_1 = require("../lib/cache");
 const dates_1 = require("../lib/dates");
 const errors_1 = require("../lib/errors");
 const MAX_SALES_IN_LIST = 200;
@@ -155,5 +156,7 @@ async function createSale(input) {
         }
         return sale.id;
     });
+    cache_1.cache.invalidate('products');
+    cache_1.cache.invalidate('dashboard');
     return getSale(saleId);
 }
