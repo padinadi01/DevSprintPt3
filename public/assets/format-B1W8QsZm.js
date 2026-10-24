@@ -1,0 +1,1 @@
+const r=new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}),e=new Intl.NumberFormat("id-ID"),a=new Intl.DateTimeFormat("id-ID",{dateStyle:"medium",timeStyle:"short",timeZone:"Asia/Jakarta"});function m(t){return r.format(t)}function n(t){return e.format(t)}function o(t){return a.format(new Date(t))}export{m as a,o as b,n as f};

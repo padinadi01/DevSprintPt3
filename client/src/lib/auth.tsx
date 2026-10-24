@@ -29,7 +29,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(() => {
     return typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
   });
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    return typeof window !== 'undefined' ? !!localStorage.getItem('auth_token') : false;
+  });
 
   // Sync token to localStorage
   const saveAuth = (newToken: string | null, newUser: AuthUser | null) => {

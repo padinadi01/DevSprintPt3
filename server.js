@@ -10,6 +10,7 @@ if (
 }
 
 const express = require('express');
+const compression = require('compression');
 const path = require('path');
 const { Pool } = require('pg');
 
@@ -83,6 +84,7 @@ async function initDatabase() {
   }
 }
 
+app.use(compression());
 app.use(express.json());
 
 // 4. Lab REST API Endpoints
@@ -219,7 +221,23 @@ try {
 
 // 6. Serve Compiled Frontend & Lab Dashboard
 const publicPath = path.join(__dirname, 'public');
-app.use(express.static(publicPath));
+
+// Highly cacheable hashed assets (Vite outputs content hashes in /assets/)
+app.use('/assets', express.static(path.join(publicPath, 'assets'), {
+  maxAge: '1y',
+  immutable: true,
+}));
+
+// Serve general static files with no-cache enforcement for index.html
+app.use(express.static(publicPath, {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('index.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  },
+}));
 
 // DevSprint Container Lab Dashboard (/lab)
 app.get(['/lab', '/lab-dashboard', '/notes-dashboard'], async (req, res) => {
@@ -581,6 +599,9 @@ app.get(['/lab', '/lab-dashboard', '/notes-dashboard'], async (req, res) => {
 // 7. SPA Fallback for Warung Madura Stock Manager
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) return next();
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.sendFile(path.join(publicPath, 'index.html'));
 });
 
