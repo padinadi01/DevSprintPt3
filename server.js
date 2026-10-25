@@ -59,6 +59,36 @@ if (process.env.DATABASE_URL) {
   });
 }
 
+// Circuit-breaker resilience for PostgreSQL pool: prevents 2.5s TCP hangs when Supabase is paused/offline
+let isPoolOffline = !pool;
+
+async function safePoolQuery(queryText, params = [], timeoutMs = 250) {
+  if (!pool || isPoolOffline) return null;
+  try {
+    const queryPromise = pool.query(queryText, params);
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('PostgreSQL query timeout')), timeoutMs)
+    );
+    return await Promise.race([queryPromise, timeoutPromise]);
+  } catch (err) {
+    isPoolOffline = true;
+    console.warn(`[Supabase Standby] PostgreSQL query failed/timed out (${err.message}). Switched to in-memory fallback.`);
+    return null;
+  }
+}
+
+// Background probe on startup within 300ms
+if (pool) {
+  safePoolQuery('SELECT 1;', [], 300).then((res) => {
+    if (res) {
+      isPoolOffline = false;
+      console.log(`[Database] PostgreSQL connection active in schema: "${targetSchema}"`);
+    } else {
+      isPoolOffline = true;
+    }
+  });
+}
+
 // In-memory fallback store for notes when remote database is standby/offline
 let inMemoryNotes = [
   {
@@ -134,17 +164,20 @@ app.get('/api/schema-info', async (req, res) => {
     'Supplier',
   ];
 
-  if (pool) {
+  if (pool && !isPoolOffline) {
     try {
-      const info = await pool.query(`SELECT current_user, current_schema();`);
-      user = info.rows[0].current_user;
-      activeSchema = info.rows[0].current_schema;
-      const tablesRes = await pool.query(
-        `SELECT table_name FROM information_schema.tables WHERE table_schema = $1;`,
-        [targetSchema]
-      );
-      if (tablesRes.rows.length > 0) {
-        tables = tablesRes.rows.map((r) => r.table_name);
+      const info = await safePoolQuery(`SELECT current_user, current_schema();`, [], 250);
+      if (info && info.rows && info.rows.length > 0) {
+        user = info.rows[0].current_user;
+        activeSchema = info.rows[0].current_schema;
+        const tablesRes = await safePoolQuery(
+          `SELECT table_name FROM information_schema.tables WHERE table_schema = $1;`,
+          [targetSchema],
+          250
+        );
+        if (tablesRes && tablesRes.rows && tablesRes.rows.length > 0) {
+          tables = tablesRes.rows.map((r) => r.table_name);
+        }
       }
     } catch (err) {
       console.warn('[Supabase Standby] Using fallback schema info:', err.message);
@@ -156,14 +189,16 @@ app.get('/api/schema-info', async (req, res) => {
 
 // GET all notes (resilient to remote database outages)
 app.get('/api/notes', async (req, res) => {
-  if (pool) {
+  if (pool && !isPoolOffline) {
     try {
-      const result = await pool.query(`
+      const result = await safePoolQuery(`
         SELECT id, title, content, created_at 
         FROM notes 
         ORDER BY id DESC;
-      `);
-      return res.json(result.rows);
+      `, [], 250);
+      if (result && result.rows) {
+        return res.json(result.rows);
+      }
     } catch (err) {
       console.warn('[Supabase Standby] Using in-memory fallback for notes:', err.message);
     }
@@ -176,13 +211,16 @@ app.post('/api/notes', async (req, res) => {
   const { title, content } = req.body;
   if (!title) return res.status(400).json({ error: 'Title is required' });
 
-  if (pool) {
+  if (pool && !isPoolOffline) {
     try {
-      const result = await pool.query(
+      const result = await safePoolQuery(
         `INSERT INTO notes (title, content) VALUES ($1, $2) RETURNING *;`,
-        [title, content || '']
+        [title, content || ''],
+        250
       );
-      return res.status(201).json(result.rows[0]);
+      if (result && result.rows && result.rows.length > 0) {
+        return res.status(201).json(result.rows[0]);
+      }
     } catch (err) {
       console.warn('[Supabase Standby] Adding note to in-memory fallback:', err.message);
     }
@@ -201,10 +239,10 @@ app.post('/api/notes', async (req, res) => {
 // DELETE note by ID (resilient to remote database outages)
 app.delete('/api/notes/:id', async (req, res) => {
   const id = parseInt(req.params.id, 10);
-  if (pool) {
+  if (pool && !isPoolOffline) {
     try {
-      const result = await pool.query(`DELETE FROM notes WHERE id = $1 RETURNING *;`, [req.params.id]);
-      if (result.rowCount > 0) {
+      const result = await safePoolQuery(`DELETE FROM notes WHERE id = $1 RETURNING *;`, [req.params.id], 250);
+      if (result && result.rowCount > 0) {
         return res.json({ message: 'Note deleted', deleted: result.rows[0] });
       }
     } catch (err) {
@@ -267,18 +305,22 @@ app.get(['/lab', '/lab-dashboard', '/notes-dashboard'], async (req, res) => {
     error: null,
   };
 
-  if (pool) {
+  if (pool && !isPoolOffline) {
     try {
-      const result = await pool.query('SELECT current_user, current_schema();');
-      dbStatus.connected = true;
-      dbStatus.user = result.rows[0].current_user;
-      dbStatus.schema = result.rows[0].current_schema;
+      const result = await safePoolQuery('SELECT current_user, current_schema();', [], 250);
+      if (result && result.rows && result.rows.length > 0) {
+        dbStatus.connected = true;
+        dbStatus.user = result.rows[0].current_user;
+        dbStatus.schema = result.rows[0].current_schema;
+      } else {
+        dbStatus.user = 'student1_user';
+      }
     } catch (err) {
       dbStatus.error = err.message;
       dbStatus.user = 'student1_user';
     }
   } else {
-    dbStatus.error = 'DATABASE_URL environment variable is missing';
+    dbStatus.error = isPoolOffline ? 'Database is standby (unreachable)' : 'DATABASE_URL environment variable is missing';
     dbStatus.user = 'student1_user';
   }
 
