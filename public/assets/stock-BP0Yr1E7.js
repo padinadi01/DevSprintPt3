@@ -1,1 +1,0 @@
-import{r}from"./index-DzAQO6er.js";function s(t={}){const e=new URLSearchParams;t.productId&&e.set("productId",t.productId);const o=e.toString();return r(`/stock-movements${o?`?${o}`:""}`)}function c(t){return r("/stock-adjustments",{method:"POST",body:t})}export{c,s as l};

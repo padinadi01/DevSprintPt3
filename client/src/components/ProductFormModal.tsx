@@ -160,7 +160,7 @@ export function ProductFormModal({ product, onClose, onSaved }: ProductFormModal
             Batal
           </button>
           <button type="submit" className={btnPrimary} disabled={submitting}>
-            {submitting ? 'Menyimpan...' : 'Simpan'}
+            {submitting ? <span data-nosnippet aria-hidden="true">Menyimpan...</span> : 'Simpan'}
           </button>
         </div>
       </form>

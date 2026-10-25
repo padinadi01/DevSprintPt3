@@ -116,7 +116,12 @@ export function LoginPage() {
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-center items-center p-4">
-      <SeoHead title="Masuk Akun - Warung Madura Stock Manager" description="Halaman masuk akun pengelola toko Warung Madura 24 Jam. Masukkan username dan PIN untuk mengakses sistem kasir, mutasi stok, dan laporan toko." noindex={false} canonical="https://student1-131481044262.asia-southeast1.run.app/login" />
+      <SeoHead
+        title="Warung Madura Berkah 24 Jam - Sistem Stok &amp; Kasir Toko"
+        description="Aplikasi kasir dan manajemen stok Warung Madura 24 jam untuk pencatatan transaksi penjualan, kontrol inventaris, serta verifikasi penerimaan barang toko."
+        noindex={false}
+        canonical="https://student1-131481044262.asia-southeast1.run.app/login"
+      />
       <div className="w-full max-w-md space-y-6">
         {/* Brand Header */}
         <div className="text-center space-y-2">
@@ -239,7 +244,7 @@ export function LoginPage() {
             </div>
 
             {/* Numeric Touch Keypad for POS */}
-            <div className="pt-1">
+            <div className="pt-1" data-nosnippet aria-hidden="true">
               <div className="grid grid-cols-3 gap-1.5">
                 {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (
                   <button

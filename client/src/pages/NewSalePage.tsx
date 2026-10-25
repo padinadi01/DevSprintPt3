@@ -233,7 +233,7 @@ export function NewSalePage() {
                 onClick={handleSubmit}
                 disabled={rows.length === 0 || submitting}
               >
-                {submitting ? 'Menyimpan...' : 'Simpan Penjualan'}
+                {submitting ? <span data-nosnippet aria-hidden="true">Menyimpan...</span> : 'Simpan Penjualan'}
               </button>
             </div>
           </section>

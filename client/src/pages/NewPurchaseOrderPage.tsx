@@ -191,7 +191,7 @@ export function NewPurchaseOrderPage() {
           Batal
         </button>
         <button type="submit" disabled={!isFormComplete || isSubmitting} className={btnPrimary}>
-          {isSubmitting ? 'Menyimpan...' : 'Simpan Pesanan'}
+          {isSubmitting ? <span data-nosnippet aria-hidden="true">Menyimpan...</span> : 'Simpan Pesanan'}
         </button>
       </div>
     </form>

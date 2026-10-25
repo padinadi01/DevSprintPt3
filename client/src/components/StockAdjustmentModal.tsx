@@ -150,7 +150,7 @@ export function StockAdjustmentModal({ product, onClose, onSaved }: StockAdjustm
             Batal
           </button>
           <button type="submit" className={btnPrimary} disabled={submitting || diff === 0 || !person || !reason}>
-            {submitting ? 'Menyimpan...' : 'Simpan Penyesuaian'}
+            {submitting ? <span data-nosnippet aria-hidden="true">Menyimpan...</span> : 'Simpan Penyesuaian'}
           </button>
         </div>
       </form>

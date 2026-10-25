@@ -769,7 +769,7 @@ export function RbacControlPage() {
                 {isCreatingUser ? (
                   <>
                     <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                    <span>Menyimpan...</span>
+                    <span data-nosnippet aria-hidden="true">Menyimpan...</span>
                   </>
                 ) : (
                   'Simpan Pengguna'
@@ -1073,7 +1073,7 @@ export function RbacControlPage() {
                   className={btnPrimary}
                   disabled={savingPermissions}
                 >
-                  {savingPermissions ? 'Menyimpan...' : '💾 Simpan Hak Akses'}
+                  {savingPermissions ? <span data-nosnippet aria-hidden="true">Menyimpan...</span> : '💾 Simpan Hak Akses'}
                 </button>
               </div>
             </form>

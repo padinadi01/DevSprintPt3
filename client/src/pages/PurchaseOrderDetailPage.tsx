@@ -441,7 +441,7 @@ export function PurchaseOrderDetailPage() {
                   disabled={isSubmitting || !receiverId}
                   className={btnPrimary}
                 >
-                  {isSubmitting ? 'Menyimpan...' : 'Simpan Penerimaan'}
+                  {isSubmitting ? <span data-nosnippet aria-hidden="true">Menyimpan...</span> : 'Simpan Penerimaan'}
                 </button>
               </div>
             </form>

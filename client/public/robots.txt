@@ -5,6 +5,9 @@ Disallow: /api/
 Disallow: /lab
 Disallow: /lab-dashboard
 Disallow: /notes-dashboard
+Disallow: /dashboard
+Disallow: /master-control
+Disallow: /settings
 Disallow: /stok
 Disallow: /produk
 Disallow: /pesanan

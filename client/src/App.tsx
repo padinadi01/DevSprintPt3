@@ -88,6 +88,19 @@ export default function App() {
           }
         />
         <Route
+          path="dashboard"
+          element={
+            <Suspense fallback={<PageFallback />}>
+              <SeoHead
+                title="Dashboard Ringkasan"
+                description="Dashboard ringkasan finansial dan stok warung."
+                noindex={true}
+              />
+              <DashboardPage />
+            </Suspense>
+          }
+        />
+        <Route
           path="stok"
           element={
             <Suspense fallback={<PageFallback />}>
@@ -232,6 +245,19 @@ export default function App() {
         />
         <Route
           path="settings/users"
+          element={
+            <Suspense fallback={<PageFallback />}>
+              <SeoHead
+                title="Master Control Hak Akses & Karyawan"
+                description="Pengaturan role staf dan izin akses warung."
+                noindex={true}
+              />
+              <RbacControlPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="settings"
           element={
             <Suspense fallback={<PageFallback />}>
               <SeoHead
