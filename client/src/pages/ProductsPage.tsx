@@ -86,28 +86,37 @@ export function ProductsPage() {
   }
 
   return (
-    <div>
+    <div className="space-y-6">
       <PageHeader
-        title="Produk"
-        description="Kelola daftar produk, harga, dan stok."
+        title="Katalog Produk & Harga"
+        description="Kelola daftar produk, harga modal, harga jual eceran, dan status keaktifan produk."
         actions={
           canManageProducts ? (
-            <button type="button" className={btnPrimary} onClick={() => setFormState({ mode: 'create' })}>
-              Tambah Produk
+            <button
+              type="button"
+              className={btnPrimary}
+              onClick={() => setFormState({ mode: 'create' })}
+            >
+              + Tambah Produk Baru
             </button>
           ) : undefined
         }
       />
 
-      <div className="mb-4 max-w-sm">
-        <input
-          type="search"
-          className={inputClass}
-          placeholder="Cari nama, SKU, atau kategori..."
-          value={searchInput}
-          onChange={(event) => setSearchInput(event.target.value)}
-          aria-label="Cari produk"
-        />
+      <div className="max-w-md">
+        <div className="relative">
+          <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+            🔍
+          </span>
+          <input
+            type="search"
+            className={`${inputClass} pl-10`}
+            placeholder="Cari nama, SKU, atau kategori..."
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            aria-label="Cari produk"
+          />
+        </div>
       </div>
 
       <div className={`${cardClass} overflow-hidden`}>
@@ -129,49 +138,65 @@ export function ProductsPage() {
 
         {products && products.length > 0 && (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200">
+            <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
               <thead className={tableHeadClass}>
                 <tr>
                   <th className={thClass}>SKU</th>
-                  <th className={thClass}>Nama</th>
+                  <th className={thClass}>Nama Produk</th>
                   <th className={thClass}>Kategori</th>
-                  {canViewCost && <th className={`${thClass} text-right`}>Harga Beli (Modal)</th>}
+                  {canViewCost && <th className={`${thClass} text-right`}>Modal</th>}
                   <th className={`${thClass} text-right`}>Harga Jual</th>
-                  <th className={`${thClass} text-right`}>Stok</th>
+                  <th className={`${thClass} text-right`}>Sisa Stok</th>
                   <th className={thClass}>Status</th>
                   <th className={`${thClass} text-right`}>Aksi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                 {products.map((product) => (
-                  <tr key={product.id} className="hover:bg-slate-50">
-                    <td className={`${tdClass} text-slate-500`}>{product.sku}</td>
-                    <td className={`${tdClass} font-medium text-slate-900`}>{product.name}</td>
-                    <td className={tdClass}>{product.category}</td>
+                  <tr
+                    key={product.id}
+                    className="hover:bg-slate-50 dark:hover:bg-[#121c33] transition-colors"
+                  >
+                    <td className={`${tdClass} text-slate-500 dark:text-slate-400 font-mono text-xs font-semibold`}>
+                      {product.sku}
+                    </td>
+                    <td className={`${tdClass} font-bold text-slate-900 dark:text-white`}>
+                      {product.name}
+                    </td>
+                    <td className={tdClass}>
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                        {product.category}
+                      </span>
+                    </td>
                     {canViewCost && (
-                      <td className={`${tdClass} text-right font-medium text-purple-900`}>
+                      <td className={`${tdClass} text-right font-mono font-bold text-xs text-purple-700 dark:text-purple-300`}>
                         {product.purchasePrice !== undefined ? formatRupiah(product.purchasePrice) : '-'}
                       </td>
                     )}
-                    <td className={`${tdClass} text-right`}>{formatRupiah(product.sellingPrice)}</td>
+                    <td className={`${tdClass} text-right font-mono font-black text-emerald-600 dark:text-emerald-400`}>
+                      {formatRupiah(product.sellingPrice)}
+                    </td>
                     <td className={`${tdClass} text-right`}>
                       <span
-                        className={
+                        className={`font-mono ${
                           product.stock <= LOW_STOCK_THRESHOLD
-                            ? 'font-semibold text-red-600'
-                            : 'text-slate-900'
-                        }
+                            ? 'font-black text-rose-600 dark:text-rose-400'
+                            : 'font-bold text-slate-900 dark:text-slate-100'
+                        }`}
                       >
-                        {formatNumber(product.stock)} {product.baseUnit}
+                        {formatNumber(product.stock)}{' '}
+                        <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
+                          {product.baseUnit}
+                        </span>
                       </span>
                     </td>
                     <td className={tdClass}>
                       {product.isActive ? (
-                        <span className="rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">
+                        <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 dark:bg-emerald-950/80 dark:border-emerald-600/50 dark:text-emerald-300">
                           Aktif
                         </span>
                       ) : (
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                        <span className="rounded-full bg-slate-100 border border-slate-200 px-2.5 py-0.5 text-[11px] font-bold text-slate-500 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400">
                           Nonaktif
                         </span>
                       )}
@@ -180,7 +205,7 @@ export function ProductsPage() {
                       {canManageProducts && (
                         <button
                           type="button"
-                          className={btnSmall}
+                          className={`${btnSmall} border border-slate-200 dark:border-slate-700`}
                           onClick={() => setStatusTarget(product)}
                         >
                           {product.isActive ? 'Nonaktifkan' : 'Aktifkan'}
@@ -189,7 +214,7 @@ export function ProductsPage() {
                       {canAdjustStock && (
                         <button
                           type="button"
-                          className={btnSmall}
+                          className={`${btnSmall} border border-slate-200 dark:border-slate-700`}
                           onClick={() => setAdjustTarget(product)}
                         >
                           Stok
@@ -199,14 +224,14 @@ export function ProductsPage() {
                         <>
                           <button
                             type="button"
-                            className={btnSmall}
+                            className={`${btnSmall} border border-slate-200 dark:border-slate-700 font-bold`}
                             onClick={() => setFormState({ mode: 'edit', product })}
                           >
                             Ubah
                           </button>
                           <button
                             type="button"
-                            className={btnSmallDanger}
+                            className={`${btnSmallDanger} border border-rose-200 dark:border-rose-900/50 font-bold`}
                             onClick={() => setDeleteTarget(product)}
                           >
                             Hapus
@@ -214,7 +239,9 @@ export function ProductsPage() {
                         </>
                       )}
                       {!canManageProducts && !canAdjustStock && (
-                        <span className="text-xs text-slate-400 italic">Hanya Baca</span>
+                        <span className="text-xs text-slate-400 dark:text-slate-500 italic">
+                          Hanya Baca
+                        </span>
                       )}
                     </td>
                   </tr>

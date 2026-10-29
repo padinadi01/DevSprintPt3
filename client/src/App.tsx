@@ -23,7 +23,7 @@ const RbacControlPage = lazy(() => import('./pages/RbacControlPage').then((m) =>
 
 function PageFallback() {
   return (
-    <div data-nosnippet aria-hidden="true" className="flex items-center justify-center p-12 text-slate-500">
+    <div data-nosnippet aria-hidden="true" className="flex items-center justify-center p-12 text-slate-500 dark:text-slate-400">
       <div className="h-7 w-7 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
     </div>
   );
@@ -47,10 +47,10 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div data-nosnippet aria-hidden="true" className="min-h-screen flex items-center justify-center bg-slate-900 text-white">
+      <div data-nosnippet aria-hidden="true" className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-800 dark:bg-[#070b14] dark:text-white transition-colors duration-200">
         <div className="text-center space-y-3">
           <div className="h-9 w-9 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-xs text-slate-400 font-medium">Memuat sesi Warung Madura...</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Memuat sesi Warung Madura...</p>
         </div>
       </div>
     );

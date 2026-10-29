@@ -39,10 +39,25 @@
       content="Aplikasi kasir dan manajemen stok Warung Madura 24 jam untuk pencatatan transaksi penjualan, kontrol inventaris, serta verifikasi penerimaan barang toko."
     />
     <meta name="twitter:image" content="https://student1-131481044262.asia-southeast1.run.app/market-icon.webp" />
-    <script type="module" crossorigin src="/assets/index-D8IiQhJA.js"></script>
+    <script>
+      (function() {
+        try {
+          var t = localStorage.getItem('wm_theme');
+          var isDark = t === 'dark' || (!t && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.style.colorScheme = 'dark';
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.style.colorScheme = 'light';
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <script type="module" crossorigin src="/assets/index-CTknh4Gf.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/vendor-7OC5HNn7.js">
     <link rel="modulepreload" crossorigin href="/assets/vendor-react-BgWlCQo0.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-Ha97P-E5.css">
+    <link rel="stylesheet" crossorigin href="/assets/index-BKADim2Z.css">
   </head>
   <body>
     <!-- Root contains zero loading text; holds lightweight meaningful brand block replaced by React upon mount -->

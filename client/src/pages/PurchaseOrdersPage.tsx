@@ -1,80 +1,113 @@
 import { Link } from 'react-router-dom';
 import { getPurchaseOrders } from '../api/purchase-orders';
 import { PageHeader } from '../components/PageHeader';
-import { ErrorState, LoadingState } from '../components/StateViews';
+import { EmptyState, ErrorState, LoadingState } from '../components/StateViews';
+import { btnPrimary, cardClass, tableHeadClass, tdClass, thClass } from '../components/ui';
 import { formatDateTime } from '../lib/format';
 import { useAsyncData } from '../lib/useAsyncData';
 import { useAuth } from '../lib/auth';
+
+function getStatusBadge(status: string) {
+  switch (status) {
+    case 'COMPLETED':
+      return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-600/50';
+    case 'PARTIALLY_RECEIVED':
+      return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/80 dark:text-amber-300 dark:border-amber-600/50';
+    case 'CANCELLED':
+      return 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/80 dark:text-rose-300 dark:border-rose-600/50';
+    default:
+      return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/80 dark:text-blue-300 dark:border-blue-600/50';
+  }
+}
 
 export function PurchaseOrdersPage() {
   const { isPemilik, hasPermission } = useAuth();
   const canCreatePo = isPemilik || hasPermission('CREATE_PO');
   const { data: pos, error, loading, reload } = useAsyncData(getPurchaseOrders);
 
-  const content = (
-    <div className="bg-white rounded shadow overflow-hidden">
-      <table className="w-full text-left border-collapse">
-        <thead>
-          <tr className="bg-gray-50 border-b">
-            <th className="p-3 font-medium text-gray-500">Tanggal</th>
-            <th className="p-3 font-medium text-gray-500">Supplier</th>
-            <th className="p-3 font-medium text-gray-500">Status</th>
-            <th className="p-3 font-medium text-gray-500">Catatan</th>
-            <th className="p-3 font-medium text-gray-500 text-right">Aksi</th>
-          </tr>
-        </thead>
-        <tbody>
-          {pos?.map((po) => (
-            <tr key={po.id} className="border-b last:border-0 hover:bg-gray-50">
-              <td className="p-3">{formatDateTime(po.orderDate)}</td>
-              <td className="p-3 font-medium">{po.supplierName}</td>
-              <td className="p-3">
-                <span className="inline-block px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
-                  {po.status}
-                </span>
-              </td>
-              <td className="p-3 text-gray-500">{po.note || '-'}</td>
-              <td className="p-3 text-right">
-                <Link
-                  to={`/pesanan/${po.id}`}
-                  className="text-sm font-semibold text-blue-600 hover:text-blue-800"
-                >
-                  Lihat Detail & Terima
-                </Link>
-              </td>
-            </tr>
-          ))}
-          {pos?.length === 0 && (
-            <tr>
-              <td colSpan={5} className="p-6 text-center text-gray-500">
-                Belum ada pesanan.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
-  );
-
   return (
     <div className="space-y-6">
       <PageHeader
         title="Pesanan Pembelian (PO)"
-        description="Kelola pesanan ke supplier sebelum barang datang."
+        description="Daftar pemesanan barang kulakan ke supplier beserta status penerimaan fisik."
         actions={
           canCreatePo ? (
-            <Link
-              to="/pesanan/baru"
-              className="bg-blue-600 text-white px-4 py-2 rounded font-medium hover:bg-blue-700 transition-colors"
-            >
-              Buat Pesanan
+            <Link to="/pesanan/baru" className={btnPrimary}>
+              + Buat Pesanan Baru
             </Link>
           ) : undefined
         }
       />
-      {loading && !pos && <LoadingState />}
-      {error && <ErrorState message={error} onRetry={reload} />}
-      {pos && content}
+
+      <div className={`${cardClass} overflow-hidden`}>
+        {loading && !pos && <LoadingState />}
+        {error && <ErrorState message={error} onRetry={reload} />}
+
+        {pos && pos.length === 0 && (
+          <EmptyState
+            title="Belum ada pesanan pembelian"
+            description="Buat pesanan kulakan ke supplier untuk mulai menambah stok toko."
+            action={
+              canCreatePo ? (
+                <Link to="/pesanan/baru" className={btnPrimary}>
+                  Buat Pesanan Pertama
+                </Link>
+              ) : undefined
+            }
+          />
+        )}
+
+        {pos && pos.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+              <thead className={tableHeadClass}>
+                <tr>
+                  <th className={thClass}>Tanggal Pesan</th>
+                  <th className={thClass}>Supplier</th>
+                  <th className={thClass}>Status</th>
+                  <th className={thClass}>Catatan</th>
+                  <th className={`${thClass} text-right`}>Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                {pos.map((po) => (
+                  <tr
+                    key={po.id}
+                    className="hover:bg-slate-50 dark:hover:bg-[#121c33] transition-colors"
+                  >
+                    <td className={`${tdClass} text-slate-500 dark:text-slate-400 font-mono text-xs`}>
+                      {formatDateTime(po.orderDate)}
+                    </td>
+                    <td className={`${tdClass} font-bold text-slate-900 dark:text-white`}>
+                      {po.supplierName}
+                    </td>
+                    <td className={tdClass}>
+                      <span
+                        className={`inline-block px-2.5 py-0.5 text-xs font-bold rounded-full border ${getStatusBadge(
+                          po.status,
+                        )}`}
+                      >
+                        {po.status}
+                      </span>
+                    </td>
+                    <td className={`${tdClass} text-slate-500 dark:text-slate-400 text-xs italic`}>
+                      {po.note || '-'}
+                    </td>
+                    <td className={`${tdClass} text-right`}>
+                      <Link
+                        to={`/pesanan/${po.id}`}
+                        className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:underline"
+                      >
+                        Lihat Detail & Terima →
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

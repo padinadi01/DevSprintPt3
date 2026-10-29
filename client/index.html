@@ -39,6 +39,21 @@
       content="Aplikasi kasir dan manajemen stok Warung Madura 24 jam untuk pencatatan transaksi penjualan, kontrol inventaris, serta verifikasi penerimaan barang toko."
     />
     <meta name="twitter:image" content="https://student1-131481044262.asia-southeast1.run.app/market-icon.webp" />
+    <script>
+      (function() {
+        try {
+          var t = localStorage.getItem('wm_theme');
+          var isDark = t === 'dark' || (!t && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.style.colorScheme = 'dark';
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.style.colorScheme = 'light';
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <!-- Root contains zero loading text; holds lightweight meaningful brand block replaced by React upon mount -->

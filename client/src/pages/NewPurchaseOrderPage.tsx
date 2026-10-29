@@ -6,7 +6,17 @@ import { getSuppliers } from '../api/suppliers';
 import { PageHeader } from '../components/PageHeader';
 import { ErrorState, LoadingState } from '../components/StateViews';
 import { useToast } from '../components/ToastProvider';
-import { btnPrimary, inputClass } from '../components/ui';
+import {
+  btnPrimary,
+  btnSecondary,
+  btnSmallDanger,
+  cardClass,
+  inputClass,
+  labelClass,
+  tableHeadClass,
+  tdClass,
+  thClass,
+} from '../components/ui';
 import { useAsyncData } from '../lib/useAsyncData';
 import type { Product } from '../types/api';
 
@@ -25,8 +35,18 @@ export function NewPurchaseOrderPage() {
   const [items, setItems] = useState<OrderItemState[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { data: suppliers, loading: loadingSuppliers, error: errSuppliers, reload: reloadS } = useAsyncData(getSuppliers);
-  const { data: products, loading: loadingProducts, error: errProducts, reload: reloadP } = useAsyncData(() => listProducts({ inStock: false }));
+  const {
+    data: suppliers,
+    loading: loadingSuppliers,
+    error: errSuppliers,
+    reload: reloadS,
+  } = useAsyncData(getSuppliers);
+  const {
+    data: products,
+    loading: loadingProducts,
+    error: errProducts,
+    reload: reloadP,
+  } = useAsyncData(() => listProducts({ inStock: false }));
 
   const activeProducts = products?.filter((p: Product) => p.isActive) || [];
 
@@ -57,7 +77,7 @@ export function NewPurchaseOrderPage() {
         note: note || undefined,
         items,
       });
-      toast.success('Pesanan berhasil dibuat!');
+      toast.success('Pesanan pembelian berhasil dibuat!');
       navigate('/pesanan');
     } catch (err: any) {
       toast.error(err.message);
@@ -65,15 +85,17 @@ export function NewPurchaseOrderPage() {
     }
   };
 
-  const isFormComplete = supplierId && items.length > 0;
+  const isFormComplete = Boolean(supplierId && items.length > 0);
 
   const content = (
-    <form onSubmit={handleSubmit} className="space-y-8">
-      <div className="bg-white p-6 rounded shadow space-y-4">
-        <h2 className="text-lg font-medium border-b pb-2">Informasi Pesanan</h2>
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className={`${cardClass} p-6 space-y-4`}>
+        <h2 className="text-base font-bold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3">
+          Informasi Pesanan & Supplier
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
+            <label className={labelClass}>Supplier <span className="text-red-500">*</span></label>
             <select
               value={supplierId}
               onChange={(e) => setSupplierId(e.target.value)}
@@ -89,7 +111,7 @@ export function NewPurchaseOrderPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Pesan</label>
+            <label className={labelClass}>Tanggal Pesan <span className="text-red-500">*</span></label>
             <input
               type="datetime-local"
               value={orderDate}
@@ -99,22 +121,29 @@ export function NewPurchaseOrderPage() {
             />
           </div>
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Catatan</label>
+            <label className={labelClass}>Catatan Pesanan (Opsional)</label>
             <input
               type="text"
               value={note}
               onChange={(e) => setNote(e.target.value)}
               className={inputClass}
-              placeholder="Contoh: Tolong kirim pagi-pagi"
+              placeholder="Contoh: Tolong kirim pagi hari, via kurir langganan"
             />
           </div>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded shadow space-y-4">
-        <h2 className="text-lg font-medium border-b pb-2">Item Pesanan</h2>
+      <div className={`${cardClass} p-6 space-y-4`}>
+        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+          <h2 className="text-base font-bold text-slate-900 dark:text-white">
+            Daftar Item Pesanan
+          </h2>
+          <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
+            {items.length} item dipilih
+          </span>
+        </div>
 
-        <div className="flex gap-2">
+        <div className="max-w-md">
           <select
             className={inputClass}
             onChange={(e) => {
@@ -122,76 +151,99 @@ export function NewPurchaseOrderPage() {
               e.target.value = '';
             }}
           >
-            <option value="">+ Tambah Produk</option>
+            <option value="">+ Tambah Produk ke Pesanan...</option>
             {activeProducts
               .filter((p: Product) => !items.some((i) => i.productId === p.id))
               .map((p: Product) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} ({p.sku})
+                  {p.name} ({p.sku}) · 1 {p.unitOfPurchase}
                 </option>
               ))}
           </select>
         </div>
 
         {items.length > 0 ? (
-          <table className="w-full text-left border-collapse mt-4">
-            <thead>
-              <tr className="bg-gray-50 border-b border-t">
-                <th className="p-2 font-medium text-gray-500">Produk</th>
-                <th className="p-2 font-medium text-gray-500">Satuan Beli</th>
-                <th className="p-2 font-medium text-gray-500 w-32">Jumlah</th>
-                <th className="p-2 w-16"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => {
-                const product = activeProducts.find((p: Product) => p.id === item.productId);
-                if (!product) return null;
-                return (
-                  <tr key={item.productId} className="border-b">
-                    <td className="p-2 font-medium">{product.name}</td>
-                    <td className="p-2 text-gray-500">{product.unitOfPurchase}</td>
-                    <td className="p-2">
-                      <input
-                        type="number"
-                        min="1"
-                        value={item.orderedQty}
-                        onChange={(e) => handleUpdateQty(item.productId, parseInt(e.target.value) || 1)}
-                        className={inputClass}
-                        required
-                      />
-                    </td>
-                    <td className="p-2 text-right">
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveItem(item.productId)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        Hapus
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+            <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800">
+              <thead className={tableHeadClass}>
+                <tr>
+                  <th className={thClass}>Nama Produk</th>
+                  <th className={thClass}>Satuan Beli</th>
+                  <th className={`${thClass} w-36`}>Jumlah Dipesan</th>
+                  <th className={`${thClass} text-right`}>Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                {items.map((item) => {
+                  const product = activeProducts.find((p: Product) => p.id === item.productId);
+                  if (!product) return null;
+                  return (
+                    <tr
+                      key={item.productId}
+                      className="hover:bg-slate-50 dark:hover:bg-[#121c33] transition-colors"
+                    >
+                      <td className={`${tdClass} font-bold text-slate-900 dark:text-white`}>
+                        {product.name}{' '}
+                        <span className="text-xs font-mono font-normal text-slate-500 dark:text-slate-400">
+                          ({product.sku})
+                        </span>
+                      </td>
+                      <td className={`${tdClass} text-xs text-slate-600 dark:text-slate-300 font-medium`}>
+                        {product.unitOfPurchase} ({product.unitsPerPurchase} {product.baseUnit})
+                      </td>
+                      <td className={tdClass}>
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.orderedQty}
+                          onChange={(e) =>
+                            handleUpdateQty(item.productId, parseInt(e.target.value, 10) || 1)
+                          }
+                          className={`${inputClass} text-center font-mono font-bold w-24`}
+                          required
+                        />
+                      </td>
+                      <td className={`${tdClass} text-right`}>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveItem(item.productId)}
+                          className={btnSmallDanger}
+                        >
+                          Hapus
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         ) : (
-          <div className="p-4 text-center text-gray-500 bg-gray-50 rounded">
-            Belum ada produk yang ditambahkan.
+          <div className="p-8 text-center text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-[#10192d] rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+            <span className="text-3xl block mb-1 opacity-50">📋</span>
+            <p className="text-sm font-semibold">Belum ada produk yang ditambahkan.</p>
+            <p className="text-xs">Pilih produk pada dropdown di atas untuk memasukkan barang kulakan.</p>
           </div>
         )}
       </div>
 
-      <div className="flex justify-end gap-3">
+      <div className="flex justify-end gap-3 pt-2">
         <button
           type="button"
           onClick={() => navigate('/pesanan')}
-          className="px-4 py-2 border rounded font-medium hover:bg-gray-50"
+          className={btnSecondary}
         >
           Batal
         </button>
         <button type="submit" disabled={!isFormComplete || isSubmitting} className={btnPrimary}>
-          {isSubmitting ? <span data-nosnippet aria-hidden="true">Menyimpan...</span> : 'Simpan Pesanan'}
+          {isSubmitting ? (
+            <span data-nosnippet aria-hidden="true" className="inline-flex items-center gap-1.5">
+              <span className="h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span>Menyimpan Pesanan...</span>
+            </span>
+          ) : (
+            'Simpan Pesanan'
+          )}
         </button>
       </div>
     </form>
@@ -207,7 +259,15 @@ export function NewPurchaseOrderPage() {
         description="Masukkan barang yang ingin dipesan ke supplier (belum menambah stok)."
       />
       {loading && (!suppliers || !products) && <LoadingState />}
-      {error && <ErrorState message={error} onRetry={() => { reloadS(); reloadP(); }} />}
+      {error && (
+        <ErrorState
+          message={error}
+          onRetry={() => {
+            reloadS();
+            reloadP();
+          }}
+        />
+      )}
       {suppliers && products && content}
     </div>
   );

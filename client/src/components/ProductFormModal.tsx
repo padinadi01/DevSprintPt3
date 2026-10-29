@@ -61,7 +61,8 @@ export function ProductFormModal({ product, onClose, onSaved }: ProductFormModal
               value={sku}
               onChange={(event) => setSku(event.target.value)}
               required
-              maxLength={40}
+              disabled={isEdit}
+              placeholder="Contoh: SMB-005"
             />
           </div>
           <div>
@@ -74,7 +75,7 @@ export function ProductFormModal({ product, onClose, onSaved }: ProductFormModal
               value={category}
               onChange={(event) => setCategory(event.target.value)}
               required
-              maxLength={60}
+              placeholder="Contoh: Sembako, Minuman"
             />
           </div>
         </div>
@@ -89,49 +90,46 @@ export function ProductFormModal({ product, onClose, onSaved }: ProductFormModal
             value={name}
             onChange={(event) => setName(event.target.value)}
             required
-            maxLength={120}
+            placeholder="Contoh: Beras Ramos 5 kg"
           />
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className={labelClass} htmlFor="product-purchase-price">
-              Harga Beli (Rp)
+              Harga Beli (Modal)
             </label>
             <input
               id="product-purchase-price"
               type="number"
               min={0}
-              step={1}
+              step={100}
               className={inputClass}
               value={purchasePrice}
               onChange={(event) => setPurchasePrice(event.target.value)}
               required
+              placeholder="0"
             />
           </div>
           <div>
             <label className={labelClass} htmlFor="product-selling-price">
-              Harga Jual (Rp)
+              Harga Jual
             </label>
             <input
               id="product-selling-price"
               type="number"
-              min={1}
-              step={1}
+              min={0}
+              step={100}
               className={inputClass}
               value={sellingPrice}
               onChange={(event) => setSellingPrice(event.target.value)}
               required
+              placeholder="0"
             />
           </div>
         </div>
 
-        {isEdit ? (
-          <p className="rounded-md bg-slate-50 p-3 text-sm text-slate-600">
-            Stok saat ini: <strong>{product.stock}</strong>. Stok diubah lewat penjualan atau
-            penyesuaian stok.
-          </p>
-        ) : (
+        {!isEdit && (
           <div>
             <label className={labelClass} htmlFor="product-stock">
               Stok Awal
@@ -150,17 +148,24 @@ export function ProductFormModal({ product, onClose, onSaved }: ProductFormModal
         )}
 
         {error && (
-          <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-700">
+          <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300">
             {error}
-          </p>
+          </div>
         )}
 
-        <div className="flex justify-end gap-2 pt-2">
+        <div className="flex justify-end gap-2.5 pt-2">
           <button type="button" className={btnSecondary} onClick={onClose} disabled={submitting}>
             Batal
           </button>
           <button type="submit" className={btnPrimary} disabled={submitting}>
-            {submitting ? <span data-nosnippet aria-hidden="true">Menyimpan...</span> : 'Simpan'}
+            {submitting ? (
+              <span data-nosnippet aria-hidden="true" className="inline-flex items-center gap-1.5">
+                <span className="h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Menyimpan...</span>
+              </span>
+            ) : (
+              'Simpan'
+            )}
           </button>
         </div>
       </form>

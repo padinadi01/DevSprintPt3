@@ -365,7 +365,7 @@ export function RbacControlPage() {
           title="Master Control RBAC"
           description="Pusat kendali hak akses dan otorisasi pengguna."
         />
-        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm space-y-5">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0d1424] p-8 text-center shadow-sm space-y-5">
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-amber-50 text-4xl border border-amber-200">
             🔒
           </div>
@@ -373,7 +373,7 @@ export function RbacControlPage() {
             <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-200">
               403 FORBIDDEN • HANYA PEMILIK
             </span>
-            <h2 className="text-xl font-bold text-slate-900">
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
               Akses Master Control Dibatasi
             </h2>
             <p className="text-sm text-slate-600 leading-relaxed">
@@ -381,7 +381,7 @@ export function RbacControlPage() {
             </p>
           </div>
 
-          <div className="rounded-xl bg-slate-50 p-4 border border-slate-200 text-xs text-slate-600 space-y-1 text-left">
+          <div className="rounded-xl bg-slate-50 dark:bg-[#121a2d] p-4 border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300 space-y-1 text-left">
             <p className="font-semibold text-slate-700">Informasi Sesi Saat Ini:</p>
             <p>• Nama Pengguna: <strong>{user?.name || 'Tamu'}</strong> (@{user?.username || 'anonim'})</p>
             <p>• Peran Aktif: <strong className="text-amber-700">{user?.role || 'ANONIM'}</strong></p>
@@ -415,7 +415,7 @@ export function RbacControlPage() {
       />
 
       {/* 1. KARTU IDENTITAS AKTIF & QUICK SWITCHER */}
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 dark:border-slate-800/90 bg-white dark:bg-[#0d1424] p-6 shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
@@ -434,7 +434,7 @@ export function RbacControlPage() {
                 {!user ? '?' : user.name.charAt(0)}
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                   {user ? user.name : 'Tamu / Anonim (Belum Login)'}
                 </h3>
                 <div className="flex items-center gap-2">
@@ -483,7 +483,7 @@ export function RbacControlPage() {
         {showManualLogin && (
           <form
             onSubmit={handleManualLogin}
-            className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4 transition-all"
+            className="mt-6 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#121a2d] p-4 transition-all"
           >
             <h4 className="text-sm font-semibold text-slate-800">Uji Autentikasi Login PIN (C2 & C7)</h4>
             <p className="text-xs text-slate-500 mb-3">
@@ -592,10 +592,10 @@ export function RbacControlPage() {
       </section>
 
       {/* 2. UJI PROBE API REAL-TIME */}
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 dark:border-slate-800/90 bg-white dark:bg-[#0d1424] p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h3 className="text-base font-bold text-slate-900">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
               ⚡ Simulator Uji Izin API Live (Real-Time RBAC Probe)
             </h3>
             <p className="text-xs text-slate-500">
@@ -613,8 +613,8 @@ export function RbacControlPage() {
 
         {probeResults.length > 0 && (
           <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-sm">
-              <thead className="bg-slate-50 text-slate-600">
+            <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-sm">
+              <thead className="bg-slate-50 text-slate-600 dark:bg-[#10192d] dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
                 <tr>
                   <th className="py-2.5 px-3 text-left font-semibold">Aksi / Fitur</th>
                   <th className="py-2.5 px-3 text-left font-semibold">Endpoint</th>
@@ -624,7 +624,7 @@ export function RbacControlPage() {
                   <th className="py-2.5 px-3 text-left font-semibold">Evaluasi</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                 {probeResults.map((p, idx) => (
                   <tr key={idx} className={p.passed ? 'bg-green-50/30' : 'bg-red-50/30'}>
                     <td className="py-2 px-3 font-medium text-slate-900">{p.name}</td>
@@ -662,11 +662,11 @@ export function RbacControlPage() {
       </section>
 
       {/* 3. MODUL NGUBAH-NGUBAH AUTHORIZE & PENGGUNA (RBAC MASTERCONTROL) */}
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 dark:border-slate-800/90 bg-white dark:bg-[#0d1424] p-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-base font-bold text-slate-900">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">
                 ⚙️ Manajemen Pengguna & Pengubahan Hak Akses (RBAC Master Control)
               </h3>
               <span className="rounded bg-purple-100 text-purple-800 text-[10px] font-bold px-2 py-0.5 uppercase tracking-wide">
@@ -745,7 +745,7 @@ export function RbacControlPage() {
                 <select
                   value={newRole}
                   onChange={(e) => setNewRole(e.target.value as UserRole)}
-                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm bg-white"
+                  className="mt-1 w-full rounded-xl border border-slate-300 dark:border-slate-700 px-3.5 py-2 text-sm bg-white dark:bg-[#121a2d] text-slate-900 dark:text-white"
                 >
                   <option value="STAF">STAF (Operasional)</option>
                   <option value="PEMILIK">PEMILIK (Akses Penuh)</option>
@@ -781,8 +781,8 @@ export function RbacControlPage() {
 
         {/* Tabel Daftar Pengguna & Ubah Peran */}
         <div className="mt-4 overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <thead className="bg-slate-50 text-slate-600">
+          <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-sm">
+            <thead className="bg-slate-50 text-slate-600 dark:bg-[#10192d] dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
               <tr>
                 <th className="py-3 px-3 text-left font-semibold">Pengguna</th>
                 <th className="py-3 px-3 text-left font-semibold">Username</th>
@@ -791,7 +791,7 @@ export function RbacControlPage() {
                 <th className="py-3 px-3 text-right font-semibold">Aksi Otorisasi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
               {loadingUsers ? (
                 <tr data-nosnippet aria-hidden="true">
                   <td colSpan={5} className="py-6 text-center text-slate-400">
@@ -806,7 +806,7 @@ export function RbacControlPage() {
                 </tr>
               ) : (
                 users.map((u) => (
-                  <tr key={u.id} className="hover:bg-slate-50/50">
+                  <tr key={u.id} className="hover:bg-slate-50/50 dark:hover:bg-[#121c33] transition-colors">
                     <td className="py-3 px-3 font-medium text-slate-900 flex items-center gap-2">
                       <span className="font-bold">{u.name}</span>
                       {u.id === user?.id && (
@@ -910,7 +910,7 @@ export function RbacControlPage() {
       {/* Modal Ubah PIN */}
       {pinModalUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-sm rounded-2xl bg-white dark:bg-[#0d1424] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 p-6 shadow-2xl">
             <h4 className="text-base font-bold text-slate-900">
               Ganti PIN Pengguna: {pinModalUser.name}
             </h4>
@@ -963,7 +963,7 @@ export function RbacControlPage() {
       {/* Modal Atur Hak Akses Staf */}
       {permModalUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-xl space-y-4 max-h-[90vh] flex flex-col">
+          <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-[#0d1424] border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
             <div className="flex items-start justify-between border-b pb-3">
               <div>
                 <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
@@ -1082,8 +1082,8 @@ export function RbacControlPage() {
       )}
 
       {/* 4. MATRIKS RESMI RBAC */}
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h3 className="text-base font-bold text-slate-900">
+      <section className="rounded-2xl border border-slate-200 dark:border-slate-800/90 bg-white dark:bg-[#0d1424] p-6 shadow-sm">
+        <h3 className="text-base font-bold text-slate-900 dark:text-white">
           📋 Matriks Hak Akses Resmi Warung Madura
         </h3>
         <p className="text-xs text-slate-500 mb-4">
@@ -1091,8 +1091,8 @@ export function RbacControlPage() {
         </p>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
-            <thead className="bg-slate-50 text-slate-600">
+          <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-800 text-sm">
+            <thead className="bg-slate-50 text-slate-600 dark:bg-[#10192d] dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
               <tr>
                 <th className="py-2.5 px-3 text-left font-semibold">Modul</th>
                 <th className="py-2.5 px-3 text-left font-semibold">Aksi / Fitur</th>
@@ -1102,9 +1102,9 @@ export function RbacControlPage() {
                 <th className="py-2.5 px-3 text-left font-semibold">Penjelasan Aturan</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
               {matrix.map((row, idx) => (
-                <tr key={idx} className="hover:bg-slate-50/50">
+                <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-[#121c33] transition-colors">
                   <td className="py-2.5 px-3 font-semibold text-slate-800">{row.module}</td>
                   <td className="py-2.5 px-3 font-medium text-slate-900">{row.action}</td>
                   <td className="py-2.5 px-3 font-mono text-xs text-slate-600">{row.endpoint}</td>
@@ -1134,7 +1134,7 @@ export function RbacControlPage() {
         </div>
 
         {principles.length > 0 && (
-          <div className="mt-6 rounded-lg bg-slate-50 p-4 border border-slate-200">
+          <div className="mt-6 rounded-xl bg-slate-50 dark:bg-[#121a2d] p-4 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
               Prinsip Keamanan RBAC (Slide Panduan Blok C)
             </h4>

@@ -63,10 +63,18 @@ export function StockAdjustmentModal({ product, onClose, onSaved }: StockAdjustm
 
   return (
     <Modal title="Penyesuaian Stok (Stock Opname)" onClose={onClose}>
-      <div className="mb-4 rounded-md bg-slate-50 p-3 text-sm text-slate-700">
-        <p className="font-semibold text-slate-900">{product.name} <span className="text-xs font-normal text-slate-500">({product.sku})</span></p>
+      <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-sm text-slate-700 dark:border-slate-700/80 dark:bg-[#121b2f] dark:text-slate-300">
+        <p className="font-bold text-slate-900 dark:text-white">
+          {product.name}{' '}
+          <span className="text-xs font-mono font-normal text-slate-500 dark:text-slate-400">
+            ({product.sku})
+          </span>
+        </p>
         <p className="mt-1">
-          Stok di sistem saat ini: <strong className="text-blue-700">{product.stock} {product.baseUnit}</strong>
+          Stok di sistem saat ini:{' '}
+          <strong className="text-emerald-700 dark:text-emerald-400 font-mono">
+            {product.stock} {product.baseUnit}
+          </strong>
         </p>
       </div>
 
@@ -104,8 +112,13 @@ export function StockAdjustmentModal({ product, onClose, onSaved }: StockAdjustm
             required
           />
           {!isNaN(parsedNewQty) && diff !== 0 && (
-            <p className={`mt-1 text-xs font-medium ${diff > 0 ? 'text-green-600' : 'text-red-600'}`}>
-              Selisih koreksi: {diff > 0 ? `+${diff}` : diff} {product.baseUnit} ({diff > 0 ? 'Stok bertambah' : 'Stok berkurang'})
+            <p
+              className={`mt-1 text-xs font-semibold ${
+                diff > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+              }`}
+            >
+              Selisih koreksi: {diff > 0 ? `+${diff}` : diff} {product.baseUnit}{' '}
+              ({diff > 0 ? 'Stok bertambah' : 'Stok berkurang'})
             </p>
           )}
         </div>
@@ -119,38 +132,44 @@ export function StockAdjustmentModal({ product, onClose, onSaved }: StockAdjustm
             className={inputClass}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="Contoh: Barang kemasan rusak, Selisih hitung kasir, Susut"
-            maxLength={100}
+            placeholder="Contoh: Barang rusak, selisih hitung fisik, kadaluarsa"
             required
           />
         </div>
 
         <div>
           <label className={labelClass} htmlFor="adjustment-note">
-            Catatan Tambahan (opsional)
+            Catatan Tambahan (Opsional)
           </label>
-          <input
+          <textarea
             id="adjustment-note"
             className={inputClass}
+            rows={2}
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Catatan pelengkap jika diperlukan"
-            maxLength={200}
+            placeholder="Detail kondisi atau informasi tambahan..."
           />
         </div>
 
         {error && (
-          <p role="alert" className="rounded-md bg-red-50 p-3 text-sm text-red-700">
+          <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-700 dark:border-red-900/60 dark:bg-red-950/40 dark:text-red-300">
             {error}
-          </p>
+          </div>
         )}
 
-        <div className="flex justify-end gap-2 pt-2 border-t">
+        <div className="flex justify-end gap-2.5 pt-2">
           <button type="button" className={btnSecondary} onClick={onClose} disabled={submitting}>
             Batal
           </button>
-          <button type="submit" className={btnPrimary} disabled={submitting || diff === 0 || !person || !reason}>
-            {submitting ? <span data-nosnippet aria-hidden="true">Menyimpan...</span> : 'Simpan Penyesuaian'}
+          <button type="submit" className={btnPrimary} disabled={submitting}>
+            {submitting ? (
+              <span data-nosnippet aria-hidden="true" className="inline-flex items-center gap-1.5">
+                <span className="h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Menyimpan...</span>
+              </span>
+            ) : (
+              'Simpan Penyesuaian'
+            )}
           </button>
         </div>
       </form>
